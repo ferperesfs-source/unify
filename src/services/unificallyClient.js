@@ -19,6 +19,7 @@ async function request(path, options = {}) {
 export const unifically = {
   listModels: category => request(`/models${category ? `?category=${encodeURIComponent(category)}` : ''}`),
   createTask: ({ model, input, callbackUrl }) => request('/tasks', { method: 'POST', body: JSON.stringify({ model, input, ...(callbackUrl ? { callback_url: callbackUrl } : {}) }) }),
+  estimateTask: ({ model, input }) => request('/estimate', { method: 'POST', body: JSON.stringify({ model, input }) }),
   getTask: taskId => request(`/tasks/${encodeURIComponent(taskId)}`),
   createChatCompletion: ({ model, prompt }) => request('/chat', { method: 'POST', body: JSON.stringify({ model, messages: [{ role: 'user', content: prompt }], stream: false }) }),
 }
