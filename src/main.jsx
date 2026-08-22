@@ -15,6 +15,7 @@ import { unifically } from './services/unificallyClient'
 const iconMap = { DocumentText, Flash, Gallery, Chart, Code, MessageText, Briefcase }
 const nav = [
   { label: 'Visão geral', Icon: Home2 }, { label: 'Ferramentas', Icon: Category },
+  { label: 'Marketing Studio', Icon: Flash },
   { label: 'Histórico', Icon: DocumentText }, { label: 'Faturamento', Icon: Wallet3 },
 ]
 const apiProviders = [
@@ -40,6 +41,19 @@ const modelGroups = [
   { key: 'video', title: 'Geração de vídeos', description: 'Modelos para cenas, animações e conteúdo em movimento.', Icon: Flash },
   { key: 'audio', title: 'Áudio e voz', description: 'Modelos para voz, música, transcrição e processamento de áudio.', Icon: Music },
   { key: 'llm', title: 'Texto e raciocínio', description: 'Modelos de linguagem para conteúdo, código e análise.', Icon: MessageText },
+]
+const marketingStudioTemplates = [
+  { id: 'product', title: 'Produto em destaque', category: 'product-shot', mode: 'image', video: 'https://higgsfield.ai/marketing-studio/hero-banners/marketing-studio-slider-poster-Product.mp4', prompt: 'Crie uma foto publicitária premium do produto, com iluminação de estúdio, composição limpa e acabamento editorial.' },
+  { id: 'ugc', title: 'UGC para redes', category: 'ugc', mode: 'video', video: 'https://higgsfield.ai/marketing-studio/hero-banners/marketing-studio-slider-poster-UGC.mp4', prompt: 'Crie um vídeo UGC vertical, autêntico e espontâneo, apresentando o produto em uso com ritmo de rede social.' },
+  { id: 'motion', title: 'Produto em movimento', category: 'motion', mode: 'video', video: 'https://higgsfield.ai/marketing-studio/hero-banners/marketing-studio-slider-poster-Motion.mp4', prompt: 'Anime o produto com movimento cinematográfico de câmera, luz dinâmica e fundo sofisticado.' },
+  { id: 'ads', title: 'Anúncio de performance', category: 'ads', mode: 'video', video: 'https://higgsfield.ai/marketing-studio/hero-banners/marketing-studio-slider-poster-Ads.mp4', prompt: 'Crie um anúncio curto, direto e visualmente marcante para apresentar o benefício principal deste produto.' },
+  { id: 'posters', title: 'Poster de campanha', category: 'posters', mode: 'image', video: 'https://higgsfield.ai/marketing-studio/hero-banners/marketing-studio-slider-poster-poster.mp4', prompt: 'Crie um poster de campanha contemporâneo com o produto como protagonista e espaço para texto publicitário.' },
+  { id: 'marketplace', title: 'Imagem de marketplace', category: 'marketplace', mode: 'image', video: 'https://higgsfield.ai/marketing-studio/hero-banners/marketing-studio-slider-poster-Marketplace.mp4', prompt: 'Crie uma imagem clara de marketplace, com o produto bem definido, fundo limpo e iluminação comercial.' },
+  { id: 'motion-01', title: 'Rotação de produto', category: 'motion', mode: 'video', video: 'https://cdn.higgsfield.ai/marketing-studio-motion-preview/04f54ce5-c138-46f9-b3ff-9326d1383ca3.mp4', prompt: 'Faça uma rotação suave do produto com câmera orbital e reflexos de estúdio.' },
+  { id: 'motion-02', title: 'Entrada cinematográfica', category: 'motion', mode: 'video', video: 'https://cdn.higgsfield.ai/marketing-studio-motion-preview/2270a163-40c5-4908-a3bc-bb18807d85fd.mp4', prompt: 'Revele o produto com uma entrada cinematográfica, luz recortada e movimento preciso.' },
+  { id: 'motion-03', title: 'Close publicitário', category: 'motion', mode: 'video', video: 'https://cdn.higgsfield.ai/marketing-studio-motion-preview/5b54eb77-0ebb-4e84-91fb-b53ee9e7d87f.mp4', prompt: 'Crie um close publicitário que destaque materiais, textura e detalhes do produto.' },
+  { id: 'motion-04', title: 'Cena de campanha', category: 'ads', mode: 'video', video: 'https://cdn.higgsfield.ai/marketing-studio-motion-preview/6daa737e-d3a7-42c1-9544-d095a126519f.mp4', prompt: 'Transforme o produto em uma cena curta de campanha com narrativa visual e composição premium.' },
+  { id: 'motion-05', title: 'Produto flutuante', category: 'motion', mode: 'video', video: 'https://cdn.higgsfield.ai/marketing-studio-motion-preview/d5840f15-1a7e-482c-912a-36d3bd30c078.mp4', prompt: 'Anime o produto flutuando de forma elegante, com profundidade, sombra e movimento natural.' },
 ]
 const formatDate = value => new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(new Date(value))
 const formatRelative = value => { const minutes = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 60000)); if (minutes < 1) return 'agora'; if (minutes < 60) return `há ${minutes} min`; const hours = Math.floor(minutes / 60); return hours < 24 ? `há ${hours}h` : formatDate(value) }
@@ -254,6 +268,98 @@ function ModelGenerationResult({ generation, category }) {
   return <div className="node-result-json"><pre>{JSON.stringify(output, null, 2)}</pre></div>
 }
 
+function MarketingStudio({ models, loading, error, userId, onRetry, onGenerationSaved, onOpenMenu, onOpenHistory }) {
+  const [mode, setMode] = useState('image')
+  const [category, setCategory] = useState('all')
+  const [prompt, setPrompt] = useState('')
+  const [modelId, setModelId] = useState('')
+  const [aspectRatio, setAspectRatio] = useState('3:4')
+  const [reference, setReference] = useState(null)
+  const [referenceUrl, setReferenceUrl] = useState('')
+  const [generation, setGeneration] = useState(null)
+  const [estimate, setEstimate] = useState(null)
+  const [estimateLoading, setEstimateLoading] = useState(false)
+  const studioModels = useMemo(() => models.filter(model => model.category === mode), [models, mode])
+  const selectedModel = studioModels.find(model => model.id === modelId) || studioModels[0]
+  const templates = useMemo(() => marketingStudioTemplates.filter(template => category === 'all' || template.category === category), [category])
+
+  useEffect(() => { if (!studioModels.length) return; if (!studioModels.some(model => model.id === modelId)) setModelId(studioModels[0].id) }, [mode, studioModels, modelId])
+  useEffect(() => { if (!reference) { setReferenceUrl(''); return undefined }; const url = URL.createObjectURL(reference); setReferenceUrl(url); return () => URL.revokeObjectURL(url) }, [reference])
+  useEffect(() => {
+    if (!selectedModel) { setEstimate(null); return undefined }
+    let active = true
+    const timer = setTimeout(async () => {
+      setEstimateLoading(true)
+      try {
+        const input = { prompt: prompt.trim() || 'Campanha de produto', aspect_ratio: aspectRatio, ...(mode === 'video' ? { duration: 5 } : { resolution: '1k' }) }
+        const response = await unifically.estimateTask({ model: selectedModel.id, input })
+        if (active) setEstimate(response?.data || null)
+      } catch { if (active) setEstimate(null) } finally { if (active) setEstimateLoading(false) }
+    }, 550)
+    return () => { active = false; clearTimeout(timer) }
+  }, [selectedModel?.id, mode, aspectRatio, prompt])
+
+  const selectTemplate = template => { setCategory(template.category); setMode(template.mode); setPrompt(template.prompt); setGeneration(null); document.querySelector('.studio-prompt')?.focus() }
+  const chooseReference = file => {
+    if (!file) return
+    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) return setGeneration({ status: 'failed', error: 'Escolha uma imagem ou um vídeo válido.' })
+    if (file.size > 100 * 1024 * 1024) return setGeneration({ status: 'failed', error: 'A referência precisa ter até 100 MB.' })
+    setReference(file); setGeneration(null)
+  }
+  const generate = async () => {
+    const cleanPrompt = prompt.trim()
+    if (!cleanPrompt) return setGeneration({ status: 'failed', error: 'Descreva a campanha que deseja criar.' })
+    if (!selectedModel) return setGeneration({ status: 'failed', error: 'Nenhum modelo compatível está disponível.' })
+    let generationId = null
+    try {
+      setGeneration({ status: 'processing', stage: 'Preparando campanha' })
+      let input = { prompt: cleanPrompt, aspect_ratio: aspectRatio, ...(mode === 'video' ? { duration: 5 } : { resolution: '1k' }) }
+      if (reference) {
+        setGeneration({ status: 'processing', stage: 'Enviando produto' })
+        const uploaded = await uploadGenerationReference(userId, reference)
+        input = { ...input, ...buildReferenceInput(selectedModel, reference, uploaded.url, input) }
+      }
+      const record = await createGenerationRecord({ userId, modelId: selectedModel.id, category: mode, prompt: cleanPrompt, input })
+      generationId = record.id
+      setGeneration({ status: 'processing', stage: 'Criando na Unifically' })
+      const created = unwrapTask(await unifically.createTask({ model: selectedModel.id, input }))
+      if (!created.task_id) throw new Error('A Unifically não retornou o identificador da tarefa.')
+      await updateGenerationRecord(generationId, { task_id: created.task_id })
+      for (let attempt = 0; attempt < 120; attempt += 1) {
+        if (attempt) await wait(3000)
+        const task = unwrapTask(await unifically.getTask(created.task_id))
+        if (task.status === 'completed') {
+          await updateGenerationRecord(generationId, { status: 'completed', output: task.output || {}, cost: task.cost ?? null, error_message: null })
+          setGeneration({ status: 'completed', output: task.output || {}, cost: task.cost })
+          onGenerationSaved?.()
+          return
+        }
+        if (task.status === 'failed') throw new Error(task.error_message || 'A geração falhou no provedor selecionado.')
+        setGeneration({ status: 'processing', stage: 'Produzindo conteúdo' })
+      }
+      throw new Error('A geração continua processando. Consulte o histórico em alguns minutos.')
+    } catch (generationError) {
+      const message = generationError?.message || 'Não foi possível concluir a geração.'
+      setGeneration({ status: 'failed', error: message })
+      if (generationId) await updateGenerationRecord(generationId, { status: 'failed', error_message: message }).catch(() => {})
+      onGenerationSaved?.()
+    }
+  }
+  const usd = Number(estimate?.cost); const brl = Number(estimate?.brl_cost)
+  const categories = [{ key: 'all', label: 'Todos' }, { key: 'product-shot', label: 'Produto' }, { key: 'motion', label: 'Motion' }, { key: 'ugc', label: 'UGC' }, { key: 'ads', label: 'Anúncios' }, { key: 'posters', label: 'Posters' }, { key: 'marketplace', label: 'Marketplace' }]
+
+  return <section className="marketing-studio">
+    <header className="studio-topbar"><div><IconButton className="studio-menu" label="Abrir menu" onClick={onOpenMenu}><HambergerMenu size="21" /></IconButton><span className="studio-symbol"><Flash size="18" variant="Bold" /></span><div><b>Marketing Studio</b><small>Campanhas com modelos da Unifically</small></div></div><div className="studio-links"><button onClick={onOpenHistory}>Minhas gerações</button><button onClick={() => document.querySelector('.studio-templates')?.scrollIntoView({ behavior: 'smooth' })}>Templates</button></div></header>
+    <div className="studio-scroll"><section className="studio-hero"><div className="studio-showcase">{marketingStudioTemplates.slice(0, 6).map((template, index) => <button type="button" className="studio-showcase-card" key={template.id} onClick={() => selectTemplate(template)} style={{ '--studio-index': index }}><video src={template.video} autoPlay muted loop playsInline preload="metadata" /><span>{template.title}</span></button>)}</div><div className="studio-title"><span>Conteúdo de campanha em um só fluxo</span><h1>Transforme qualquer produto<br />em conteúdo pronto para publicar.</h1></div>
+      <div className="studio-composer"><div className="studio-mode" role="tablist" aria-label="Tipo de geração"><button className={mode === 'image' ? 'active' : ''} onClick={() => { setMode('image'); setGeneration(null) }}><Gallery size="18" />Imagem</button><button className={mode === 'video' ? 'active' : ''} onClick={() => { setMode('video'); setGeneration(null) }}><Flash size="18" />Vídeo</button></div><div className="studio-input-shell"><textarea className="studio-prompt" value={prompt} onChange={event => setPrompt(event.target.value)} placeholder="Descreva o conteúdo que deseja criar..." /><div className="studio-input-actions"><label className={reference ? 'has-file' : ''}><Add size="18" /><span>{reference ? reference.name : 'Adicionar produto'}</span><input type="file" accept="image/*,video/*" onChange={event => chooseReference(event.target.files?.[0])} /></label><select aria-label="Modelo" value={selectedModel?.id || ''} onChange={event => setModelId(event.target.value)} disabled={loading || !studioModels.length}>{loading ? <option>Carregando modelos...</option> : studioModels.length ? studioModels.map(model => <option value={model.id} key={model.id}>{model.display_name || model.id}</option>) : <option>Nenhum modelo disponível</option>}</select><select aria-label="Proporção" value={aspectRatio} onChange={event => setAspectRatio(event.target.value)}><option>3:4</option><option>1:1</option><option>9:16</option><option>16:9</option></select></div></div><button type="button" className="studio-generate" onClick={generate} disabled={generation?.status === 'processing' || !selectedModel}><Flash size="19" variant="Bold" /><span>{generation?.status === 'processing' ? generation.stage : 'Gerar'}</span><small>{estimateLoading ? 'calculando custo' : Number.isFinite(usd) ? `${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 3 }).format(usd)} · ${Number.isFinite(brl) ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(brl) : 'BRL indisponível'}` : 'estimativa no clique'}</small></button></div>
+      {reference && <div className="studio-reference">{reference.type.startsWith('video/') ? <video src={referenceUrl} muted playsInline /> : <img src={referenceUrl} alt="Produto de referência" />}<span><b>{reference.name}</b><small>{(reference.size / 1024 / 1024).toFixed(1)} MB · pronto para gerar</small></span><button onClick={() => setReference(null)} aria-label="Remover produto"><CloseCircle size="18" /></button></div>}
+      {error && <div className="studio-error"><CloseCircle size="17" />{error}<button onClick={onRetry}>Tentar novamente</button></div>}
+      {generation && <section className="studio-result"><div><span>Resultado</span><b>{generation.status === 'processing' ? 'Sua campanha está sendo produzida' : generation.status === 'completed' ? 'Conteúdo concluído' : 'A geração precisa de atenção'}</b></div><ModelGenerationResult generation={generation} category={mode} /></section>}
+    </section>
+    <section className="studio-templates"><div className="studio-section-head"><div><span>Biblioteca criativa</span><h2>Explore templates</h2></div><small>{templates.length} opções</small></div><div className="studio-filters" role="group" aria-label="Categorias de templates">{categories.map(item => <button key={item.key} className={category === item.key ? 'active' : ''} onClick={() => setCategory(item.key)}>{item.label}</button>)}</div><div className="studio-template-grid">{templates.map((template, index) => <button type="button" className="studio-template" key={template.id} onClick={() => selectTemplate(template)} style={{ '--studio-index': index }}><video src={template.video} muted loop playsInline preload="metadata" onMouseEnter={event => event.currentTarget.play().catch(() => {})} onMouseLeave={event => { event.currentTarget.pause(); event.currentTarget.currentTime = 0 }} /><span><small>{categories.find(item => item.key === template.category)?.label}</small><b>{template.title}</b><i>Usar template <ArrowRight size="15" /></i></span></button>)}</div></section></div>
+  </section>
+}
+
 function Dashboard({ session }) {
   const { tools, loading: toolsLoading, error: toolsError } = useCatalog(); const [active, setActive] = useState('Visão geral'); const [search, setSearch] = useState(''); const [mobile, setMobile] = useState(false); const [profile, setProfile] = useState(null); const [projects, setProjects] = useState([]); const [generations, setGenerations] = useState([]); const [historyLoading, setHistoryLoading] = useState(true); const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [task, setTask] = useState(''); const [creating, setCreating] = useState(false); const [models, setModels] = useState([]); const [modelsLoading, setModelsLoading] = useState(true); const [modelsError, setModelsError] = useState(''); const [unificallyReady, setUnificallyReady] = useState(false)
   const loadWorkspace = async () => { setLoading(true); try { const data = await getWorkspace(session.user.id); setProfile(data.profile); setProjects(data.projects) } catch (err) { setError(err.message) } finally { setLoading(false) } }
@@ -266,8 +372,9 @@ function Dashboard({ session }) {
   const fullName = profile?.full_name || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Usuário'; const firstName = fullName.split(' ')[0]; const initials = fullName.split(' ').filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase() || 'U'
   const create = async title => { const cleanTitle = title.trim(); if (!cleanTitle) return setError('Descreva a tarefa antes de criar o projeto.'); setCreating(true); setError(''); try { const project = await createProject({ userId: session.user.id, toolId: tools[0]?.id, title: cleanTitle }); setProjects(current => [project, ...current]); setTask('') } catch (err) { setError(err.message) } finally { setCreating(false) } }
   const exit = async () => { try { await signOut(); location.hash = 'login' } catch (err) { setError(err.message) } }
-  return <div className={`dashboard ${active === 'Ferramentas' ? 'tools-focus' : ''}`}><aside className={mobile ? 'dash-sidebar open' : 'dash-sidebar'}><div className="sidebar-top"><Logo dark /><IconButton className="close-mobile" label="Fechar menu" onClick={() => setMobile(false)}><CloseCircle size="21" /></IconButton></div><nav>{nav.map(({ label, Icon }) => <button key={label} className={active === label ? 'active' : ''} onClick={() => { setActive(label); setMobile(false) }}><Icon size="20" />{label}</button>)}</nav><div className="sidebar-bottom"><div className="api-status connected"><span><i /> Supabase</span><small>Conectado e protegido</small></div><div className={`api-status ${unificallyReady ? 'connected' : ''}`}><span><i /> Unifically</span><small>{unificallyReady ? `${models.length} modelos disponíveis` : 'Aguardando API key'}</small></div><button><Setting2 size="20" />Configurações</button><div className="user-card"><div>{initials}</div><span><b>{fullName}</b><small>Plano {profile?.plan || 'free'}</small></span><IconButton label="Sair" onClick={exit}><Logout size="18" /></IconButton></div></div></aside>
-    <main className="dash-main"><header className="dash-header"><IconButton className="dash-menu" label="Abrir menu" onClick={() => setMobile(true)}><HambergerMenu size="22" /></IconButton><div className="global-search"><SearchNormal1 size="19" /><input value={search} onChange={event => setSearch(event.target.value)} placeholder={active === 'Ferramentas' ? 'Buscar modelos e provedores...' : 'Buscar no catálogo...'} /><kbd>⌘ K</kbd></div><IconButton label="Notificações" className="notification-button"><Notification size="21" /></IconButton><button className="profile-chip"><span>{initials}</span><b>{firstName}</b></button></header><div className={`dash-content ${active === 'Ferramentas' ? 'board-mode' : ''}`}>{active === 'Ferramentas' ? <ToolsDirectory models={models} loading={modelsLoading} error={modelsError} search={search} onRetry={loadModels} userId={session.user.id} onGenerationSaved={loadHistory} /> : <><div className="dash-intro"><div><span className="kicker">{new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())}</span><h1>Olá, {firstName}.</h1><p className="dashboard-live-counts">{loading || historyLoading ? 'Carregando seu workspace...' : <><span><AnimatedMetric value={projects.length} /> {projects.length === 1 ? 'projeto' : 'projetos'}</span><i /><span><AnimatedMetric value={generations.length} /> {generations.length === 1 ? 'geração' : 'gerações'}</span></>}</p></div><button className="button dash-cta" onClick={() => document.querySelector('.quick-task-input')?.focus()}><Add size="19" /> Novo projeto</button></div>
+  const focusClass = active === 'Ferramentas' ? 'tools-focus' : active === 'Marketing Studio' ? 'studio-focus' : ''
+  return <div className={`dashboard ${focusClass}`}><aside className={mobile ? 'dash-sidebar open' : 'dash-sidebar'}><div className="sidebar-top"><Logo dark /><IconButton className="close-mobile" label="Fechar menu" onClick={() => setMobile(false)}><CloseCircle size="21" /></IconButton></div><nav>{nav.map(({ label, Icon }) => <button key={label} className={active === label ? 'active' : ''} onClick={() => { setActive(label); setMobile(false) }}><Icon size="20" />{label}</button>)}</nav><div className="sidebar-bottom"><div className="api-status connected"><span><i /> Supabase</span><small>Conectado e protegido</small></div><div className={`api-status ${unificallyReady ? 'connected' : ''}`}><span><i /> Unifically</span><small>{unificallyReady ? `${models.length} modelos disponíveis` : 'Aguardando API key'}</small></div><button><Setting2 size="20" />Configurações</button><div className="user-card"><div>{initials}</div><span><b>{fullName}</b><small>Plano {profile?.plan || 'free'}</small></span><IconButton label="Sair" onClick={exit}><Logout size="18" /></IconButton></div></div></aside>
+    <main className="dash-main">{active !== 'Marketing Studio' && <header className="dash-header"><IconButton className="dash-menu" label="Abrir menu" onClick={() => setMobile(true)}><HambergerMenu size="22" /></IconButton><div className="global-search"><SearchNormal1 size="19" /><input value={search} onChange={event => setSearch(event.target.value)} placeholder={active === 'Ferramentas' ? 'Buscar modelos e provedores...' : 'Buscar no catálogo...'} /><kbd>⌘ K</kbd></div><IconButton label="Notificações" className="notification-button"><Notification size="21" /></IconButton><button className="profile-chip"><span>{initials}</span><b>{firstName}</b></button></header>}<div className={`dash-content ${active === 'Ferramentas' ? 'board-mode' : active === 'Marketing Studio' ? 'studio-mode' : ''}`}>{active === 'Ferramentas' ? <ToolsDirectory models={models} loading={modelsLoading} error={modelsError} search={search} onRetry={loadModels} userId={session.user.id} onGenerationSaved={loadHistory} /> : active === 'Marketing Studio' ? <MarketingStudio models={models} loading={modelsLoading} error={modelsError} userId={session.user.id} onRetry={loadModels} onGenerationSaved={loadHistory} onOpenMenu={() => setMobile(true)} onOpenHistory={() => setActive('Histórico')} /> : <><div className="dash-intro"><div><span className="kicker">{new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())}</span><h1>Olá, {firstName}.</h1><p className="dashboard-live-counts">{loading || historyLoading ? 'Carregando seu workspace...' : <><span><AnimatedMetric value={projects.length} /> {projects.length === 1 ? 'projeto' : 'projetos'}</span><i /><span><AnimatedMetric value={generations.length} /> {generations.length === 1 ? 'geração' : 'gerações'}</span></>}</p></div><button className="button dash-cta" onClick={() => document.querySelector('.quick-task-input')?.focus()}><Add size="19" /> Novo projeto</button></div>
     <section className="quick-action"><div><span className="spark"><Flash size="21" variant="Bold" /></span><div><b>Comece com uma tarefa</b><p>O projeto será salvo no seu workspace.</p></div></div><button className="quick-task-button" onClick={() => create(task)} disabled={creating}><input className="quick-task-input" value={task} onChange={event => setTask(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); create(task) } }} onClick={event => event.stopPropagation()} placeholder="Ex: criar uma legenda para o lançamento..." /><ArrowRight size="18" /></button></section>
     {(error || toolsError) && <div className="dashboard-error"><CloseCircle size="17" />{error || toolsError}</div>}
     <section className="tool-section"><div className="tool-heading"><div><span className="kicker">Catálogo real</span><h2>Ferramentas disponíveis</h2></div><span className="database-count">{tools.length} ativas</span></div>{toolsLoading ? <div className="tool-grid">{Array.from({ length: 6 }).map((_, i) => <div className="tool-card skeleton" key={i}><span /><i /><i /></div>)}</div> : filtered.length ? <ScrollFade className="tool-scroll"><div className="tool-grid">{filtered.map((tool, i) => { const Icon = iconMap[tool.icon] || Category; return <article className="tool-card" style={{ '--i': i }} key={tool.id}><div className="tool-icon" style={{ background: tool.color }}><Icon size="24" /></div><span className="tool-tag">{tool.category}</span><h3>{tool.name}</h3><p>{tool.description}</p><button onClick={() => { setTask(`Novo projeto com ${tool.name}`); document.querySelector('.quick-task-input')?.focus() }}>Usar ferramenta <ArrowRight size="17" /></button></article> })}</div></ScrollFade> : <div className="empty-state"><SearchNormal1 size="28" /><h3>Nenhuma ferramenta encontrada</h3><p>Tente buscar por outro termo ou categoria.</p><button onClick={() => setSearch('')}>Limpar busca</button></div>}</section>
