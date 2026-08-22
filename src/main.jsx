@@ -268,14 +268,23 @@ function ModelGenerationResult({ generation, category }) {
   return <div className="node-result-json"><pre>{JSON.stringify(output, null, 2)}</pre></div>
 }
 
+function StudioAssetField({ label, file, accept, onChange, onRemove }) {
+  const [previewUrl, setPreviewUrl] = useState('')
+  useEffect(() => { if (!file) { setPreviewUrl(''); return undefined }; const url = URL.createObjectURL(file); setPreviewUrl(url); return () => URL.revokeObjectURL(url) }, [file])
+  return <label className={`studio-asset ${file ? 'filled' : ''}`} aria-label={`Adicionar ${label.toLowerCase()}`}>
+    {file ? <>{file.type.startsWith('video/') ? <video src={previewUrl} muted playsInline /> : <img src={previewUrl} alt={`Prévia de ${label.toLowerCase()}`} />}<button type="button" onClick={event => { event.preventDefault(); event.stopPropagation(); onRemove() }} aria-label={`Remover ${label.toLowerCase()}`}><CloseCircle size="16" /></button></> : <span><Add size="17" /></span>}
+    <b>{label}</b><small>{file ? 'Pronto' : label === 'Avatar' ? 'Rosto ou pessoa' : 'Imagem ou vídeo'}</small><input type="file" accept={accept} onChange={event => { onChange(event.target.files?.[0]); event.currentTarget.value = '' }} />
+  </label>
+}
+
 function MarketingStudio({ models, loading, error, userId, onRetry, onGenerationSaved, onOpenMenu, onOpenHistory }) {
   const [mode, setMode] = useState('image')
   const [category, setCategory] = useState('all')
   const [prompt, setPrompt] = useState('')
   const [modelId, setModelId] = useState('')
   const [aspectRatio, setAspectRatio] = useState('3:4')
-  const [reference, setReference] = useState(null)
-  const [referenceUrl, setReferenceUrl] = useState('')
+  const [avatar, setAvatar] = useState(null)
+  const [product, setProduct] = useState(null)
   const [generation, setGeneration] = useState(null)
   const [estimate, setEstimate] = useState(null)
   const [estimateLoading, setEstimateLoading] = useState(false)
@@ -284,7 +293,6 @@ function MarketingStudio({ models, loading, error, userId, onRetry, onGeneration
   const templates = useMemo(() => marketingStudioTemplates.filter(template => category === 'all' || template.category === category), [category])
 
   useEffect(() => { if (!studioModels.length) return; if (!studioModels.some(model => model.id === modelId)) setModelId(studioModels[0].id) }, [mode, studioModels, modelId])
-  useEffect(() => { if (!reference) { setReferenceUrl(''); return undefined }; const url = URL.createObjectURL(reference); setReferenceUrl(url); return () => URL.revokeObjectURL(url) }, [reference])
   useEffect(() => {
     if (!selectedModel) { setEstimate(null); return undefined }
     let active = true
@@ -300,11 +308,13 @@ function MarketingStudio({ models, loading, error, userId, onRetry, onGeneration
   }, [selectedModel?.id, mode, aspectRatio, prompt])
 
   const selectTemplate = template => { setCategory(template.category); setMode(template.mode); setPrompt(template.prompt); setGeneration(null); document.querySelector('.studio-prompt')?.focus() }
-  const chooseReference = file => {
+  const chooseReference = (kind, file) => {
     if (!file) return
     if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) return setGeneration({ status: 'failed', error: 'Escolha uma imagem ou um vídeo válido.' })
-    if (file.size > 100 * 1024 * 1024) return setGeneration({ status: 'failed', error: 'A referência precisa ter até 100 MB.' })
-    setReference(file); setGeneration(null)
+    if (kind === 'avatar' && !file.type.startsWith('image/')) return setGeneration({ status: 'failed', error: 'O avatar precisa ser uma imagem.' })
+    if (file.size > 100 * 1024 * 1024) return setGeneration({ status: 'failed', error: 'Cada referência precisa ter até 100 MB.' })
+    if (kind === 'avatar') setAvatar(file); else setProduct(file)
+    setGeneration(null)
   }
   const generate = async () => {
     const cleanPrompt = prompt.trim()
@@ -314,10 +324,17 @@ function MarketingStudio({ models, loading, error, userId, onRetry, onGeneration
     try {
       setGeneration({ status: 'processing', stage: 'Preparando campanha' })
       let input = { prompt: cleanPrompt, aspect_ratio: aspectRatio, ...(mode === 'video' ? { duration: 5 } : { resolution: '1k' }) }
-      if (reference) {
-        setGeneration({ status: 'processing', stage: 'Enviando produto' })
-        const uploaded = await uploadGenerationReference(userId, reference)
-        input = { ...input, ...buildReferenceInput(selectedModel, reference, uploaded.url, input) }
+      const assets = [{ kind: 'avatar', file: avatar }, { kind: 'product', file: product }].filter(asset => asset.file)
+      if (assets.length) {
+        setGeneration({ status: 'processing', stage: assets.length > 1 ? 'Enviando avatar e produto' : `Enviando ${assets[0].kind === 'avatar' ? 'avatar' : 'produto'}` })
+        const uploadedAssets = await Promise.all(assets.map(async asset => ({ ...asset, ...(await uploadGenerationReference(userId, asset.file)) })))
+        const urls = uploadedAssets.map(asset => asset.url)
+        const modelKey = selectedModel.id || ''
+        if (mode === 'image') input.image_urls = urls
+        else if (modelKey.includes('seedance-2')) input = { ...input, mode: 'omni_reference', references: urls }
+        else if (modelKey.includes('gemini-omni') || modelKey.startsWith('google/veo')) input.reference_image_urls = urls
+        else if (uploadedAssets.length === 1) input = { ...input, ...buildReferenceInput(selectedModel, uploadedAssets[0].file, uploadedAssets[0].url, input) }
+        else input = { ...input, ...buildReferenceInput(selectedModel, product || avatar, (uploadedAssets.find(asset => asset.kind === 'product') || uploadedAssets[0]).url, input), references: urls }
       }
       const record = await createGenerationRecord({ userId, modelId: selectedModel.id, category: mode, prompt: cleanPrompt, input })
       generationId = record.id
@@ -351,8 +368,7 @@ function MarketingStudio({ models, loading, error, userId, onRetry, onGeneration
   return <section className="marketing-studio">
     <header className="studio-topbar"><div><IconButton className="studio-menu" label="Abrir menu" onClick={onOpenMenu}><HambergerMenu size="21" /></IconButton><span className="studio-symbol"><Flash size="18" variant="Bold" /></span><div><b>Marketing Studio</b><small>Campanhas com modelos da Unifically</small></div></div><div className="studio-links"><button onClick={onOpenHistory}>Minhas gerações</button><button onClick={() => document.querySelector('.studio-templates')?.scrollIntoView({ behavior: 'smooth' })}>Templates</button></div></header>
     <div className="studio-scroll"><section className="studio-hero"><div className="studio-showcase">{marketingStudioTemplates.slice(0, 6).map((template, index) => <button type="button" className="studio-showcase-card" key={template.id} onClick={() => selectTemplate(template)} style={{ '--studio-index': index }}><video src={template.video} autoPlay muted loop playsInline preload="metadata" /><span>{template.title}</span></button>)}</div><div className="studio-title"><span>Conteúdo de campanha em um só fluxo</span><h1>Transforme qualquer produto<br />em conteúdo pronto para publicar.</h1></div>
-      <div className="studio-composer"><div className="studio-mode" role="tablist" aria-label="Tipo de geração"><button className={mode === 'image' ? 'active' : ''} onClick={() => { setMode('image'); setGeneration(null) }}><Gallery size="18" />Imagem</button><button className={mode === 'video' ? 'active' : ''} onClick={() => { setMode('video'); setGeneration(null) }}><Flash size="18" />Vídeo</button></div><div className="studio-input-shell"><textarea className="studio-prompt" value={prompt} onChange={event => setPrompt(event.target.value)} placeholder="Descreva o conteúdo que deseja criar..." /><div className="studio-input-actions"><label className={reference ? 'has-file' : ''}><Add size="18" /><span>{reference ? reference.name : 'Adicionar produto'}</span><input type="file" accept="image/*,video/*" onChange={event => chooseReference(event.target.files?.[0])} /></label><select aria-label="Modelo" value={selectedModel?.id || ''} onChange={event => setModelId(event.target.value)} disabled={loading || !studioModels.length}>{loading ? <option>Carregando modelos...</option> : studioModels.length ? studioModels.map(model => <option value={model.id} key={model.id}>{model.display_name || model.id}</option>) : <option>Nenhum modelo disponível</option>}</select><select aria-label="Proporção" value={aspectRatio} onChange={event => setAspectRatio(event.target.value)}><option>3:4</option><option>1:1</option><option>9:16</option><option>16:9</option></select></div></div><button type="button" className="studio-generate" onClick={generate} disabled={generation?.status === 'processing' || !selectedModel}><Flash size="19" variant="Bold" /><span>{generation?.status === 'processing' ? generation.stage : 'Gerar'}</span><small>{estimateLoading ? 'calculando custo' : Number.isFinite(usd) ? `${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 3 }).format(usd)} · ${Number.isFinite(brl) ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(brl) : 'BRL indisponível'}` : 'estimativa no clique'}</small></button></div>
-      {reference && <div className="studio-reference">{reference.type.startsWith('video/') ? <video src={referenceUrl} muted playsInline /> : <img src={referenceUrl} alt="Produto de referência" />}<span><b>{reference.name}</b><small>{(reference.size / 1024 / 1024).toFixed(1)} MB · pronto para gerar</small></span><button onClick={() => setReference(null)} aria-label="Remover produto"><CloseCircle size="18" /></button></div>}
+      <div className="studio-composer"><div className="studio-mode" role="tablist" aria-label="Tipo de geração"><button className={mode === 'image' ? 'active' : ''} onClick={() => { setMode('image'); setGeneration(null) }}><Gallery size="18" />Imagem</button><button className={mode === 'video' ? 'active' : ''} onClick={() => { setMode('video'); setGeneration(null) }}><Flash size="18" />Vídeo</button></div><div className="studio-input-shell"><textarea className="studio-prompt" value={prompt} onChange={event => setPrompt(event.target.value)} placeholder="Descreva o conteúdo que deseja criar..." /><div className="studio-input-actions"><select aria-label="Modelo" value={selectedModel?.id || ''} onChange={event => setModelId(event.target.value)} disabled={loading || !studioModels.length}>{loading ? <option>Carregando modelos...</option> : studioModels.length ? studioModels.map(model => <option value={model.id} key={model.id}>{model.display_name || model.id}</option>) : <option>Nenhum modelo disponível</option>}</select><select aria-label="Proporção" value={aspectRatio} onChange={event => setAspectRatio(event.target.value)}><option>3:4</option><option>1:1</option><option>9:16</option><option>16:9</option></select></div></div><StudioAssetField label="Avatar" file={avatar} accept="image/*" onChange={file => chooseReference('avatar', file)} onRemove={() => setAvatar(null)} /><StudioAssetField label="Produto" file={product} accept="image/*,video/*" onChange={file => chooseReference('product', file)} onRemove={() => setProduct(null)} /><button type="button" className="studio-generate" onClick={generate} disabled={generation?.status === 'processing' || !selectedModel}><Flash size="19" variant="Bold" /><span>{generation?.status === 'processing' ? generation.stage : 'Gerar'}</span><small>{estimateLoading ? 'calculando custo' : Number.isFinite(usd) ? `${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 3 }).format(usd)} · ${Number.isFinite(brl) ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(brl) : 'BRL indisponível'}` : 'estimativa no clique'}</small></button></div>
       {error && <div className="studio-error"><CloseCircle size="17" />{error}<button onClick={onRetry}>Tentar novamente</button></div>}
       {generation && <section className="studio-result"><div><span>Resultado</span><b>{generation.status === 'processing' ? 'Sua campanha está sendo produzida' : generation.status === 'completed' ? 'Conteúdo concluído' : 'A geração precisa de atenção'}</b></div><ModelGenerationResult generation={generation} category={mode} /></section>}
     </section>
