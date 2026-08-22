@@ -290,10 +290,13 @@ function ModelGenerationResult({ generation, category }) {
 function StudioAssetField({ label, file, accept, onChange, onRemove }) {
   const [previewUrl, setPreviewUrl] = useState('')
   useEffect(() => { if (!file) { setPreviewUrl(''); return undefined }; const url = URL.createObjectURL(file); setPreviewUrl(url); return () => URL.revokeObjectURL(url) }, [file])
-  return <label className={`studio-asset ${file ? 'filled' : ''}`} aria-label={`Adicionar ${label.toLowerCase()}`}>
-    {file ? <>{file.type.startsWith('video/') ? <video src={previewUrl} muted playsInline /> : <img src={previewUrl} alt={`Prévia de ${label.toLowerCase()}`} />}<button type="button" onClick={event => { event.preventDefault(); event.stopPropagation(); onRemove() }} aria-label={`Remover ${label.toLowerCase()}`}><CloseCircle size="16" /></button></> : <span><Add size="17" /></span>}
-    <b>{label}</b><small>{file ? 'Pronto' : label === 'Avatar' ? 'Rosto ou pessoa' : 'Imagem ou vídeo'}</small><input type="file" accept={accept} onChange={event => { onChange(event.target.files?.[0]); event.currentTarget.value = '' }} />
-  </label>
+  return <div className={`studio-asset ${file ? 'filled' : ''}`}>
+    <label className="studio-asset-upload" aria-label={`${file ? 'Substituir' : 'Adicionar'} ${label.toLowerCase()}`}>
+      {file ? file.type.startsWith('video/') ? <video src={previewUrl} muted playsInline /> : <img src={previewUrl} alt={`Prévia de ${label.toLowerCase()}`} /> : <span><Add size="17" /></span>}
+      <b>{label}</b><small>{file ? 'Pronto' : label === 'Avatar' ? 'Rosto ou pessoa' : 'Imagem ou vídeo'}</small><input type="file" accept={accept} onChange={event => { onChange(event.target.files?.[0]); event.currentTarget.value = '' }} />
+    </label>
+    {file && <button className="studio-asset-remove" type="button" onClick={onRemove} aria-label={`Remover ${label.toLowerCase()}`} title={`Remover ${label.toLowerCase()}`}><CloseCircle size="18" /></button>}
+  </div>
 }
 
 function MarketingStudio({ models, loading, error, userId, onRetry, onGenerationSaved, onOpenMenu, onOpenHistory }) {
