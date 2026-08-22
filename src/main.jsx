@@ -1,123 +1,76 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import {
-  Add, ArrowRight, Briefcase, Category, Chart, CloseCircle, Code,
-  DocumentText, Eye, EyeSlash, Flash, HambergerMenu, Home2, Logout,
-  MessageText, Notification, SearchNormal1, Setting2, ShieldTick, TickCircle,
-  User, Wallet3
-} from 'iconsax-react'
+import { Add, ArrowRight, Briefcase, Category, Chart, CloseCircle, Code, DocumentText, Eye, EyeSlash, Flash, Gallery, HambergerMenu, Home2, Logout, MessageText, Notification, SearchNormal1, Setting2, ShieldTick, TickCircle, Wallet3 } from 'iconsax-react'
 import './styles.css'
 import './skiper.css'
 import { TextRoll } from './components/skiper/TextRoll'
 import { ExpandingAction } from './components/skiper/ExpandingAction'
 import { ScrollFade } from './components/skiper/ScrollFade'
+import { isSupabaseConfigured, supabase } from './lib/supabase'
+import { createProject, getCatalog, getWorkspace, signInWithGoogle, signInWithPassword, signOut, signUpWithPassword } from './services/supabaseData'
 
-const tools = [
-  { name: 'Copywriter', desc: 'Textos que convertem, no tom da sua marca.', tag: 'Conteúdo', Icon: DocumentText, color: '#d9ff6a' },
-  { name: 'Gerador de imagens', desc: 'Visuais prontos para campanhas e redes.', tag: 'Criativo', Icon: Flash, color: '#f1b7ff' },
-  { name: 'Análise de dados', desc: 'Transforme planilhas em decisões claras.', tag: 'Dados', Icon: Chart, color: '#a9d5ff' },
-  { name: 'Assistente de código', desc: 'Crie, revise e explique código em minutos.', tag: 'Dev', Icon: Code, color: '#ffcf73' },
-  { name: 'Chat inteligente', desc: 'Respostas rápidas com o contexto do negócio.', tag: 'Atendimento', Icon: MessageText, color: '#ffa991' },
-  { name: 'Propostas comerciais', desc: 'Documentos consistentes que fecham negócio.', tag: 'Vendas', Icon: Briefcase, color: '#c7baff' },
-]
-
+const iconMap = { DocumentText, Flash, Gallery, Chart, Code, MessageText, Briefcase }
 const nav = [
-  { label: 'Visão geral', Icon: Home2 },
-  { label: 'Ferramentas', Icon: Category },
-  { label: 'Histórico', Icon: DocumentText },
-  { label: 'Faturamento', Icon: Wallet3 },
+  { label: 'Visão geral', Icon: Home2 }, { label: 'Ferramentas', Icon: Category },
+  { label: 'Histórico', Icon: DocumentText }, { label: 'Faturamento', Icon: Wallet3 },
 ]
+const formatDate = value => new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(new Date(value))
+const formatRelative = value => { const minutes = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 60000)); if (minutes < 1) return 'agora'; if (minutes < 60) return `há ${minutes} min`; const hours = Math.floor(minutes / 60); return hours < 24 ? `há ${hours}h` : formatDate(value) }
 
-function Logo({ dark = false }) {
-  return <button className={`logo ${dark ? 'logo-dark' : ''}`} onClick={() => location.hash = ''} aria-label="Ir para o início">
-    <span className="logo-mark"><i /><i /><i /></span><span>unify</span>
-  </button>
+function useCatalog() {
+  const [tools, setTools] = useState([]); const [loading, setLoading] = useState(true); const [error, setError] = useState('')
+  useEffect(() => { let active = true; getCatalog().then(data => active && setTools(data)).catch(err => active && setError(err.message)).finally(() => active && setLoading(false)); return () => { active = false } }, [])
+  return { tools, loading, error }
+}
+function Logo({ dark = false }) { return <button className={`logo ${dark ? 'logo-dark' : ''}`} onClick={() => location.hash = ''} aria-label="Ir para o início"><span className="logo-mark"><i /><i /><i /></span><span>unify</span></button> }
+function IconButton({ children, label, onClick, className = '', type = 'button' }) { return <button type={type} className={`icon-button ${className}`} aria-label={label} onClick={onClick}>{children}</button> }
+
+function Landing({ session }) {
+  const [menu, setMenu] = useState(false); const { tools, loading } = useCatalog()
+  return <div className="landing"><header className="site-nav shell"><Logo /><nav className={menu ? 'nav-links open' : 'nav-links'}><a href="#recursos"><TextRoll>Recursos</TextRoll></a><a href="#como-funciona"><TextRoll>Como funciona</TextRoll></a><a href="#planos"><TextRoll>Planos</TextRoll></a></nav><div className="nav-actions"><button className="text-button" onClick={() => location.hash = session ? 'dashboard' : 'login'}>{session ? 'Dashboard' : 'Entrar'}</button><button className="button light" onClick={() => location.hash = session ? 'dashboard' : 'login'}>{session ? 'Abrir workspace' : 'Começar agora'} <ArrowRight size="17" /></button></div><IconButton className="menu-button" label="Abrir menu" onClick={() => setMenu(!menu)}><HambergerMenu size="22" /></IconButton></header>
+    <main><section className="hero shell"><div className="hero-copy reveal"><div className="eyebrow"><span className="pulse-dot" /> Catálogo sincronizado com Supabase</div><h1>Menos abas.<br /><span>Mais trabalho feito.</span></h1><p>Ferramentas inteligentes para criar, analisar e operar. Um workspace simples para sua equipe produzir mais sem trocar de plataforma.</p><div className="hero-actions"><button className="button accent" onClick={() => location.hash = session ? 'dashboard' : 'login'}>{session ? 'Acessar workspace' : 'Criar conta'} <ArrowRight size="18" /></button><a href="#como-funciona"><TextRoll>Ver como funciona</TextRoll></a></div><div className="social-proof real-status"><span className="database-dot"><TickCircle size="19" variant="Bold" /></span><p><strong>{loading ? 'Consultando catálogo' : `${tools.length} ferramentas disponíveis`}</strong><br />Dados carregados diretamente da base</p></div></div><ProductPreview tools={tools} loading={loading} /></section>
+    <section className="ticker"><div className="ticker-track">{tools.length ? [...tools, ...tools].map((tool, i) => <React.Fragment key={`${tool.id}-${i}`}><span>{tool.category.toUpperCase()}</span><i /></React.Fragment>) : <><span>CARREGANDO CATÁLOGO</span><i /><span>SUPABASE</span><i /></>}</div></section>
+    <section className="features shell" id="recursos"><div className="section-heading"><span>O workspace completo</span><h2>Tudo que sua equipe precisa.<br />Sem a complexidade.</h2></div><div className="feature-grid"><article className="feature feature-large"><div><span className="feature-num">01</span><h3>Um catálogo conectado à base</h3><p>Ferramentas, categorias e disponibilidade vêm do Supabase.</p></div><div className="mini-tool-grid">{tools.slice(0, 4).map(tool => { const Icon = iconMap[tool.icon] || Category; return <div className="mini-tool" key={tool.id}><span style={{ background: tool.color }}><Icon size="20" /></span>{tool.name}</div> })}</div></article><article className="feature feature-dark"><span className="feature-num">02</span><div className="live-status"><i /><span>Integração preparada</span></div><h3>Conecte a Unifically</h3><p>A camada de integração está isolada e pronta para receber endpoints server-side.</p><div className="code-line"><code>UNIFICALLY_API_URL</code><TickCircle size="18" color="#d9ff6a" /></div></article><article className="feature feature-accent"><span className="feature-num">03</span><div><ShieldTick size="34" variant="Broken" /><h3>Dados separados por usuário</h3><p>Autenticação real e RLS garantem que cada pessoa veja apenas seu workspace.</p></div></article></div></section>
+    <section className="how shell" id="como-funciona"><div className="how-copy"><span>Comece em minutos</span><h2>Da conta ao projeto em três passos.</h2></div><ol>{['Crie sua conta', 'Escolha uma ferramenta', 'Salve seu projeto'].map((text, i) => <li key={text}><span>0{i + 1}</span><h3>{text}</h3><p>{['Seu perfil é criado com Supabase Auth.', 'O catálogo é carregado diretamente da base.', 'Projetos e histórico ficam vinculados ao seu usuário.'][i]}</p></li>)}</ol></section>
+    <section className="cta shell" id="planos"><div><span>Seu próximo projeto começa aqui</span><h2>Uma plataforma.<br />Seus dados reais.</h2></div><div className="skiper-action-wrap"><small>Toque para revelar</small><ExpandingAction onComplete={() => location.hash = session ? 'dashboard' : 'login'} /></div></section></main>
+    <footer className="footer shell"><Logo /><p>© 2026 Unify Technologies · Componentes por <a className="skiper-credit" href="https://skiper-ui.com/" target="_blank" rel="noreferrer">Skiper UI</a></p><div><a href="#">Privacidade</a><a href="#">Termos</a></div></footer></div>
 }
 
-function IconButton({ children, label, onClick, className = '' }) {
-  return <button className={`icon-button ${className}`} aria-label={label} onClick={onClick}>{children}</button>
-}
-
-function Landing() {
-  const [menu, setMenu] = useState(false)
-  return <div className="landing">
-    <header className="site-nav shell">
-      <Logo />
-      <nav className={menu ? 'nav-links open' : 'nav-links'}>
-        <a href="#recursos"><TextRoll>Recursos</TextRoll></a><a href="#como-funciona"><TextRoll>Como funciona</TextRoll></a><a href="#planos"><TextRoll>Planos</TextRoll></a>
-      </nav>
-      <div className="nav-actions"><button className="text-button" onClick={() => location.hash='login'}>Entrar</button><button className="button light" onClick={() => location.hash='login'}>Começar agora <ArrowRight size="17" /></button></div>
-      <IconButton className="menu-button" label="Abrir menu" onClick={() => setMenu(!menu)}><HambergerMenu size="22" /></IconButton>
-    </header>
-
-    <main>
-      <section className="hero shell">
-        <div className="hero-copy reveal">
-          <div className="eyebrow"><span className="pulse-dot" /> Sua operação, em um único lugar</div>
-          <h1>Menos abas.<br /><span>Mais trabalho feito.</span></h1>
-          <p>Ferramentas inteligentes para criar, analisar e operar. Um workspace simples para sua equipe produzir mais sem trocar de plataforma.</p>
-          <div className="hero-actions"><button className="button accent" onClick={() => location.hash='login'}>Experimentar grátis <ArrowRight size="18" /></button><a href="#como-funciona"><TextRoll>Ver como funciona</TextRoll></a></div>
-          <div className="social-proof"><div className="avatar-stack"><span>ML</span><span>RS</span><span>AO</span></div><p><strong>2.400+ profissionais</strong><br />já centralizaram seu trabalho</p></div>
-        </div>
-        <ProductPreview />
-      </section>
-
-      <section className="ticker"><div className="ticker-track">{['CONTEÚDO','ANÁLISE','AUTOMAÇÃO','IMAGENS','CÓDIGO','ATENDIMENTO','CONTEÚDO','ANÁLISE','AUTOMAÇÃO','IMAGENS'].map((x,i)=><React.Fragment key={i}><span>{x}</span><i /></React.Fragment>)}</div></section>
-
-      <section className="features shell" id="recursos">
-        <div className="section-heading"><span>O workspace completo</span><h2>Tudo que sua equipe precisa.<br />Sem a complexidade.</h2></div>
-        <div className="feature-grid">
-          <article className="feature feature-large"><div><span className="feature-num">01</span><h3>Um catálogo que cresce com você</h3><p>Acesse ferramentas especializadas para cada etapa da sua operação.</p></div><div className="mini-tool-grid">{tools.slice(0,4).map(({name,Icon,color})=><div className="mini-tool" key={name}><span style={{background:color}}><Icon size="20" variant="Linear" /></span>{name}</div>)}</div></article>
-          <article className="feature feature-dark"><span className="feature-num">02</span><div className="live-status"><i /><span>Integração pronta</span></div><h3>Conecte a Unifically</h3><p>Uma camada de integração organizada para plugar suas chaves e endpoints quando estiver pronto.</p><div className="code-line"><code>UNIFICALLY_API_KEY</code><TickCircle size="18" color="#d9ff6a" /></div></article>
-          <article className="feature feature-accent"><span className="feature-num">03</span><div><ShieldTick size="34" variant="Broken" /><h3>Seu trabalho continua seu</h3><p>Estrutura preparada para autenticação segura e dados isolados por workspace.</p></div></article>
-        </div>
-      </section>
-
-      <section className="how shell" id="como-funciona"><div className="how-copy"><span>Comece em minutos</span><h2>Da ideia ao resultado em três passos.</h2></div><ol>{['Crie seu workspace','Escolha uma ferramenta','Entregue seu melhor trabalho'].map((x,i)=><li key={x}><span>0{i+1}</span><h3>{x}</h3><p>{['Organize equipe, projetos e preferências.','Use prompts guiados ou comece do zero.','Salve, exporte e compartilhe com sua equipe.'][i]}</p></li>)}</ol></section>
-
-      <section className="cta shell" id="planos"><div><span>Seu próximo projeto começa aqui</span><h2>Uma plataforma.<br />Mais possibilidades.</h2></div><div className="skiper-action-wrap"><small>Toque para revelar</small><ExpandingAction onComplete={() => location.hash='login'} /></div></section>
-    </main>
-    <footer className="footer shell"><Logo /><p>© 2026 Unify Technologies · Componentes por <a className="skiper-credit" href="https://skiper-ui.com/" target="_blank" rel="noreferrer">Skiper UI</a></p><div><a href="#">Privacidade</a><a href="#">Termos</a></div></footer>
-  </div>
-}
-
-function ProductPreview() {
-  return <div className="preview-wrap reveal delay"><div className="preview-orbit orbit-one" /><div className="preview-orbit orbit-two" />
-    <div className="preview-window">
-      <div className="window-bar"><span /><span /><span /><div>app.unify.tools</div></div>
-      <div className="preview-body"><aside><Logo dark /><div className="fake-nav active" /><div className="fake-nav" /><div className="fake-nav small" /></aside><div className="preview-content"><div className="preview-head"><div><b>Boa tarde, Marina</b><small>O que você quer criar hoje?</small></div><span>MG</span></div><div className="command-demo"><SearchNormal1 size="17" /><span>Busque uma ferramenta ou tarefa...</span><kbd>⌘ K</kbd></div><div className="demo-grid">{tools.slice(0,4).map(({name,Icon,color})=><div key={name}><span style={{background:color}}><Icon size="20" /></span><b>{name}</b><small>Abrir ferramenta</small></div>)}</div></div></div>
-    </div>
-    <div className="floating-tag tag-one"><TickCircle size="18" variant="Bold" /> Projeto salvo</div><div className="floating-tag tag-two"><Flash size="18" variant="Bold" /> +32% produtividade</div>
-  </div>
+function ProductPreview({ tools, loading }) {
+  return <div className="preview-wrap reveal delay"><div className="preview-orbit orbit-one" /><div className="preview-orbit orbit-two" /><div className="preview-window"><div className="window-bar"><span /><span /><span /><div>app.unify.tools</div></div><div className="preview-body"><aside><Logo dark /><div className="fake-nav active" /><div className="fake-nav" /><div className="fake-nav small" /></aside><div className="preview-content"><div className="preview-head"><div><b>Seu workspace</b><small>{loading ? 'Sincronizando...' : `${tools.length} ferramentas ativas`}</small></div><span>U</span></div><div className="command-demo"><SearchNormal1 size="17" /><span>Busque uma ferramenta ou tarefa...</span><kbd>⌘ K</kbd></div><div className="demo-grid">{tools.slice(0, 4).map(tool => { const Icon = iconMap[tool.icon] || Category; return <div key={tool.id}><span style={{ background: tool.color }}><Icon size="20" /></span><b>{tool.name}</b><small>{tool.category}</small></div> })}</div></div></div></div><div className="floating-tag tag-one"><TickCircle size="18" variant="Bold" /> Base conectada</div><div className="floating-tag tag-two"><Flash size="18" variant="Bold" /> Catálogo ao vivo</div></div>
 }
 
 function Login() {
-  const [show, setShow] = useState(false); const [loading, setLoading] = useState(false); const [error, setError] = useState('')
-  const submit = e => { e.preventDefault(); const data = new FormData(e.currentTarget); if (!data.get('email') || !data.get('password')) return setError('Preencha seu e-mail e sua senha.'); setError(''); setLoading(true); setTimeout(()=>location.hash='dashboard', 850) }
-  return <main className="login-page">
-    <section className="login-art"><Logo /><div className="login-statement"><div className="eyebrow"><span className="pulse-dot" /> Workspace inteligente</div><h1>Um lugar para<br />fazer acontecer.</h1><p>Crie, analise e automatize com ferramentas pensadas para o seu fluxo.</p></div><div className="login-quote">“Agora nossa equipe produz em horas o que levava dias.”<span>Marina Lima · Estúdio Norte</span></div></section>
-    <section className="login-panel"><button className="back-link" onClick={()=>location.hash=''}>← Voltar para o site</button><div className="login-box"><span className="kicker">Bem-vindo de volta</span><h2>Acesse seu workspace</h2><p>Entre com seus dados para continuar.</p><form onSubmit={submit} noValidate><label>E-mail corporativo<input name="email" type="email" placeholder="voce@empresa.com" autoComplete="email" /></label><label>Senha<div className="password-field"><input name="password" type={show?'text':'password'} placeholder="Mínimo de 8 caracteres" autoComplete="current-password" /><IconButton label={show?'Ocultar senha':'Mostrar senha'} onClick={()=>setShow(!show)}>{show?<EyeSlash size="19"/>:<Eye size="19"/>}</IconButton></div></label><div className="form-row"><label className="checkbox"><input type="checkbox" /> <span>Lembrar de mim</span></label><button type="button">Esqueci minha senha</button></div>{error&&<div className="form-error"><CloseCircle size="17" />{error}</div>}<button className="button login-submit" disabled={loading}>{loading?<span className="loading-line">Preparando seu workspace</span>:<>Entrar <ArrowRight size="18" /></>}</button></form><div className="divider"><span>ou continue com</span></div><button className="google-button"><span>G</span> Google</button><p className="signup-line">Ainda não tem uma conta? <button>Crie gratuitamente</button></p></div><small className="legal">Ao continuar, você concorda com nossos Termos e Política de Privacidade.</small></section>
-  </main>
+  const [mode, setMode] = useState('login'); const [show, setShow] = useState(false); const [loading, setLoading] = useState(false); const [error, setError] = useState(''); const [message, setMessage] = useState('')
+  const submit = async event => { event.preventDefault(); setError(''); setMessage(''); const data = new FormData(event.currentTarget); const email = String(data.get('email') || '').trim(); const password = String(data.get('password') || ''); const fullName = String(data.get('fullName') || '').trim(); if (!email || !password || (mode === 'signup' && !fullName)) return setError('Preencha todos os campos obrigatórios.'); if (password.length < 6) return setError('A senha precisa ter pelo menos 6 caracteres.'); setLoading(true); try { if (mode === 'signup') { const { session } = await signUpWithPassword(email, password, fullName); if (session) location.hash = 'dashboard'; else setMessage('Conta criada. Confirme o e-mail para acessar o workspace.') } else { await signInWithPassword(email, password); location.hash = 'dashboard' } } catch (err) { setError(err.message) } finally { setLoading(false) } }
+  const google = async () => { setError(''); try { await signInWithGoogle() } catch (err) { setError(err.message) } }
+  return <main className="login-page"><section className="login-art"><Logo /><div className="login-statement"><div className="eyebrow"><span className="pulse-dot" /> Supabase Auth ativo</div><h1>Um lugar para<br />fazer acontecer.</h1><p>Seus projetos ficam vinculados à sua conta e protegidos por políticas de acesso.</p></div><div className="login-quote">Autenticação, catálogo e projetos conectados à infraestrutura real.<span>Unify · Workspace protegido por RLS</span></div></section><section className="login-panel"><button className="back-link" onClick={() => location.hash = ''}>← Voltar para o site</button><div className="login-box"><span className="kicker">{mode === 'login' ? 'Bem-vindo de volta' : 'Novo workspace'}</span><h2>{mode === 'login' ? 'Acesse sua conta' : 'Crie sua conta'}</h2><p>{mode === 'login' ? 'Entre com seus dados reais para continuar.' : 'Seu perfil será salvo de forma segura no Supabase.'}</p><form onSubmit={submit} noValidate>{mode === 'signup' && <label>Nome completo<input name="fullName" type="text" placeholder="Como devemos chamar você?" autoComplete="name" /></label>}<label>E-mail<input name="email" type="email" placeholder="voce@empresa.com" autoComplete="email" /></label><label>Senha<div className="password-field"><input name="password" type={show ? 'text' : 'password'} placeholder="Mínimo de 6 caracteres" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} /><IconButton label={show ? 'Ocultar senha' : 'Mostrar senha'} onClick={() => setShow(!show)}>{show ? <EyeSlash size="19" /> : <Eye size="19" />}</IconButton></div></label>{error && <div className="form-error"><CloseCircle size="17" />{error}</div>}{message && <div className="form-success"><TickCircle size="17" />{message}</div>}<button className="button login-submit" disabled={loading}>{loading ? <span className="loading-line">Conectando</span> : <>{mode === 'login' ? 'Entrar' : 'Criar conta'} <ArrowRight size="18" /></>}</button></form><div className="divider"><span>ou continue com</span></div><button className="google-button" onClick={google}><span>G</span> Google</button><p className="signup-line">{mode === 'login' ? 'Ainda não tem uma conta?' : 'Já possui uma conta?'} <button onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(''); setMessage('') }}>{mode === 'login' ? 'Criar gratuitamente' : 'Entrar'}</button></p></div><small className="legal">Ao continuar, você concorda com nossos Termos e Política de Privacidade.</small></section></main>
 }
 
-function Dashboard() {
-  const [active,setActive]=useState('Visão geral'); const [search,setSearch]=useState(''); const [mobile,setMobile]=useState(false); const [loading,setLoading]=useState(true)
-  useEffect(()=>{ const id=setTimeout(()=>setLoading(false),600); return()=>clearTimeout(id)},[])
-  const filtered=useMemo(()=>tools.filter(t=>(t.name+t.desc+t.tag).toLowerCase().includes(search.toLowerCase())),[search])
-  return <div className="dashboard">
-    <aside className={mobile?'dash-sidebar open':'dash-sidebar'}><div className="sidebar-top"><Logo dark /><IconButton className="close-mobile" label="Fechar menu" onClick={()=>setMobile(false)}><CloseCircle size="21" /></IconButton></div><nav>{nav.map(({label,Icon})=><button key={label} className={active===label?'active':''} onClick={()=>{setActive(label);setMobile(false)}}><Icon size="20" />{label}</button>)}</nav><div className="sidebar-bottom"><div className="api-status"><span><i /> Unifically API</span><small>Aguardando conexão</small></div><button><Setting2 size="20" />Configurações</button><div className="user-card"><div>ML</div><span><b>Marina Lima</b><small>Plano Pro</small></span><IconButton label="Sair" onClick={()=>location.hash='login'}><Logout size="18" /></IconButton></div></div></aside>
-    <main className="dash-main"><header className="dash-header"><IconButton className="dash-menu" label="Abrir menu" onClick={()=>setMobile(true)}><HambergerMenu size="22" /></IconButton><div className="global-search"><SearchNormal1 size="19"/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar em todo o workspace..."/><kbd>⌘ K</kbd></div><IconButton label="Notificações" className="notification-button"><Notification size="21"/><i /></IconButton><button className="profile-chip"><span>ML</span><b>Marina</b></button></header>
-      <div className="dash-content"><div className="dash-intro"><div><span className="kicker">Sexta-feira, 22 de agosto</span><h1>Boa tarde, Marina.</h1><p>Qual ferramenta vai acelerar seu trabalho hoje?</p></div><button className="button dash-cta"><Add size="19" /> Novo projeto</button></div>
-        <section className="quick-action"><div><span className="spark"><Flash size="21" variant="Bold" /></span><div><b>Comece com uma tarefa</b><p>Descreva o que precisa e indicamos a ferramenta certa.</p></div></div><button><span>Ex: crie uma legenda para o lançamento...</span><ArrowRight size="18" /></button></section>
-        <section className="tool-section"><div className="tool-heading"><div><span className="kicker">Catálogo</span><h2>Suas ferramentas</h2></div><button>Ver todas <ArrowRight size="16" /></button></div>
-          {loading?<div className="tool-grid">{Array.from({length:6}).map((_,i)=><div className="tool-card skeleton" key={i}><span/><i/><i/></div>)}</div>:filtered.length?<ScrollFade className="tool-scroll"><div className="tool-grid">{filtered.map(({name,desc,tag,Icon,color},i)=><article className="tool-card" style={{'--i':i}} key={name}><div className="tool-icon" style={{background:color}}><Icon size="24" variant="Linear" /></div><span className="tool-tag">{tag}</span><h3>{name}</h3><p>{desc}</p><button>Abrir ferramenta <ArrowRight size="17" /></button></article>)}</div></ScrollFade>:<div className="empty-state"><SearchNormal1 size="28"/><h3>Nenhuma ferramenta encontrada</h3><p>Tente buscar por outro termo ou categoria.</p><button onClick={()=>setSearch('')}>Limpar busca</button></div>}
-        </section>
-        <section className="recent"><div className="tool-heading"><div><span className="kicker">Atividade</span><h2>Projetos recentes</h2></div><button>Ver histórico <ArrowRight size="16" /></button></div><div className="recent-table"><div><span className="file-icon"><DocumentText size="19" /></span><p><b>Campanha de lançamento · Inverno</b><small>Copywriter · editado há 18 min</small></p><span className="status">Concluído</span><button>•••</button></div><div><span className="file-icon blue"><Chart size="19" /></span><p><b>Relatório de performance · Q2</b><small>Análise de dados · editado ontem</small></p><span className="status draft">Rascunho</span><button>•••</button></div></div></section>
-      </div>
-    </main>{mobile&&<button className="sidebar-overlay" aria-label="Fechar menu" onClick={()=>setMobile(false)} />}
-  </div>
+function Dashboard({ session }) {
+  const { tools, loading: toolsLoading, error: toolsError } = useCatalog(); const [active, setActive] = useState('Visão geral'); const [search, setSearch] = useState(''); const [mobile, setMobile] = useState(false); const [profile, setProfile] = useState(null); const [projects, setProjects] = useState([]); const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [task, setTask] = useState(''); const [creating, setCreating] = useState(false)
+  const loadWorkspace = async () => { setLoading(true); try { const data = await getWorkspace(session.user.id); setProfile(data.profile); setProjects(data.projects) } catch (err) { setError(err.message) } finally { setLoading(false) } }
+  useEffect(() => { loadWorkspace() }, [session.user.id])
+  const filtered = useMemo(() => tools.filter(tool => `${tool.name}${tool.description}${tool.category}`.toLowerCase().includes(search.toLowerCase())), [tools, search])
+  const fullName = profile?.full_name || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Usuário'; const firstName = fullName.split(' ')[0]; const initials = fullName.split(' ').filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase() || 'U'
+  const create = async title => { const cleanTitle = title.trim(); if (!cleanTitle) return setError('Descreva a tarefa antes de criar o projeto.'); setCreating(true); setError(''); try { const project = await createProject({ userId: session.user.id, toolId: tools[0]?.id, title: cleanTitle }); setProjects(current => [project, ...current]); setTask('') } catch (err) { setError(err.message) } finally { setCreating(false) } }
+  const exit = async () => { try { await signOut(); location.hash = 'login' } catch (err) { setError(err.message) } }
+  return <div className="dashboard"><aside className={mobile ? 'dash-sidebar open' : 'dash-sidebar'}><div className="sidebar-top"><Logo dark /><IconButton className="close-mobile" label="Fechar menu" onClick={() => setMobile(false)}><CloseCircle size="21" /></IconButton></div><nav>{nav.map(({ label, Icon }) => <button key={label} className={active === label ? 'active' : ''} onClick={() => { setActive(label); setMobile(false) }}><Icon size="20" />{label}</button>)}</nav><div className="sidebar-bottom"><div className="api-status connected"><span><i /> Supabase</span><small>Conectado e protegido</small></div><button><Setting2 size="20" />Configurações</button><div className="user-card"><div>{initials}</div><span><b>{fullName}</b><small>Plano {profile?.plan || 'free'}</small></span><IconButton label="Sair" onClick={exit}><Logout size="18" /></IconButton></div></div></aside>
+    <main className="dash-main"><header className="dash-header"><IconButton className="dash-menu" label="Abrir menu" onClick={() => setMobile(true)}><HambergerMenu size="22" /></IconButton><div className="global-search"><SearchNormal1 size="19" /><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar no catálogo..." /><kbd>⌘ K</kbd></div><IconButton label="Notificações" className="notification-button"><Notification size="21" /></IconButton><button className="profile-chip"><span>{initials}</span><b>{firstName}</b></button></header><div className="dash-content"><div className="dash-intro"><div><span className="kicker">{new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())}</span><h1>Olá, {firstName}.</h1><p>{loading ? 'Carregando seu workspace...' : `${projects.length} ${projects.length === 1 ? 'projeto salvo' : 'projetos salvos'} na sua conta.`}</p></div><button className="button dash-cta" onClick={() => document.querySelector('.quick-task-input')?.focus()}><Add size="19" /> Novo projeto</button></div>
+    <section className="quick-action"><div><span className="spark"><Flash size="21" variant="Bold" /></span><div><b>Comece com uma tarefa</b><p>O projeto será salvo no seu workspace.</p></div></div><button className="quick-task-button" onClick={() => create(task)} disabled={creating}><input className="quick-task-input" value={task} onChange={event => setTask(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); create(task) } }} onClick={event => event.stopPropagation()} placeholder="Ex: criar uma legenda para o lançamento..." /><ArrowRight size="18" /></button></section>
+    {(error || toolsError) && <div className="dashboard-error"><CloseCircle size="17" />{error || toolsError}</div>}
+    <section className="tool-section"><div className="tool-heading"><div><span className="kicker">Catálogo real</span><h2>Ferramentas disponíveis</h2></div><span className="database-count">{tools.length} ativas</span></div>{toolsLoading ? <div className="tool-grid">{Array.from({ length: 6 }).map((_, i) => <div className="tool-card skeleton" key={i}><span /><i /><i /></div>)}</div> : filtered.length ? <ScrollFade className="tool-scroll"><div className="tool-grid">{filtered.map((tool, i) => { const Icon = iconMap[tool.icon] || Category; return <article className="tool-card" style={{ '--i': i }} key={tool.id}><div className="tool-icon" style={{ background: tool.color }}><Icon size="24" /></div><span className="tool-tag">{tool.category}</span><h3>{tool.name}</h3><p>{tool.description}</p><button onClick={() => { setTask(`Novo projeto com ${tool.name}`); document.querySelector('.quick-task-input')?.focus() }}>Usar ferramenta <ArrowRight size="17" /></button></article> })}</div></ScrollFade> : <div className="empty-state"><SearchNormal1 size="28" /><h3>Nenhuma ferramenta encontrada</h3><p>Tente buscar por outro termo ou categoria.</p><button onClick={() => setSearch('')}>Limpar busca</button></div>}</section>
+    <section className="recent"><div className="tool-heading"><div><span className="kicker">Banco de dados</span><h2>Projetos recentes</h2></div><button onClick={loadWorkspace}>Atualizar</button></div>{loading ? <div className="recent-table recent-loading"><span className="loading-line">Consultando seus projetos</span></div> : projects.length ? <div className="recent-table">{projects.slice(0, 6).map(project => { const Icon = iconMap[project.tool?.icon] || DocumentText; return <div key={project.id}><span className="file-icon" style={{ background: project.tool?.color || '#e8e6df' }}><Icon size="19" /></span><p><b>{project.title}</b><small>{project.tool?.name || 'Projeto'} · {formatRelative(project.updated_at)}</small></p><span className={`status ${project.status === 'draft' ? 'draft' : ''}`}>{project.status === 'draft' ? 'Rascunho' : project.status}</span><button aria-label="Opções">•••</button></div> })}</div> : <div className="empty-state project-empty"><DocumentText size="28" /><h3>Nenhum projeto ainda</h3><p>Descreva sua primeira tarefa acima. Ela será salva aqui.</p></div>}</section></div></main>{mobile && <button className="sidebar-overlay" aria-label="Fechar menu" onClick={() => setMobile(false)} />}</div>
 }
 
-function App(){const [route,setRoute]=useState(location.hash.slice(1));useEffect(()=>{const h=()=>setRoute(location.hash.slice(1));addEventListener('hashchange',h);return()=>removeEventListener('hashchange',h)},[]);return route==='login'?<Login/>:route==='dashboard'?<Dashboard/>:<Landing/>}
+function App() {
+  const [route, setRoute] = useState(location.hash.slice(1)); const [session, setSession] = useState(null); const [authLoading, setAuthLoading] = useState(true)
+  useEffect(() => { const handler = () => setRoute(location.hash.slice(1)); addEventListener('hashchange', handler); return () => removeEventListener('hashchange', handler) }, [])
+  useEffect(() => { if (!supabase) { setAuthLoading(false); return }; supabase.auth.getSession().then(({ data }) => { setSession(data.session); setAuthLoading(false) }); const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => setSession(nextSession)); return () => subscription.unsubscribe() }, [])
+  if (!isSupabaseConfigured) return <main className="config-error"><CloseCircle size="28" /><h1>Supabase não configurado</h1><p>Adicione as variáveis indicadas em <code>.env.example</code>.</p></main>
+  if (authLoading) return <main className="app-loading"><Logo dark /><span className="loading-line">Verificando sessão</span></main>
+  if (route === 'dashboard' || route === 'login') return session ? <Dashboard session={session} /> : <Login />
+  return <Landing session={session} />
+}
 
-createRoot(document.getElementById('root')).render(<React.StrictMode><App/></React.StrictMode>)
+createRoot(document.getElementById('root')).render(<React.StrictMode><App /></React.StrictMode>)
