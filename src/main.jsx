@@ -115,10 +115,9 @@ function ToolsDirectory({ models, loading, error, search, onRetry, userId, onGen
   const [connections, setConnections] = useState([])
   const [selectedNodes, setSelectedNodes] = useState([])
   const [history, setHistory] = useState([])
-  const [nodes, setNodes] = useState([{ id: 'prompt', type: 'prompt', x: 110, y: 190, title: 'Prompt', value: '' }])
+  const [nodes, setNodes] = useState([])
   const query = (librarySearch.trim() || search.trim()).toLowerCase()
   const visibleModels = useMemo(() => models.filter(model => model.category === activeCategory && `${model.display_name || ''} ${model.provider_display || ''} ${model.owned_by || ''} ${model.id || ''}`.toLowerCase().includes(query)), [models, activeCategory, query])
-  useEffect(() => { if (!models.length) return; const starter = models.find(model => model.category === 'video') || models.find(model => model.category === 'image') || models[0]; setNodes(current => current.some(node => node.type === 'model') ? current : [...current, { id: `model-${starter.id}`, type: 'model', model: starter, settings: getDefaultModelSettings(starter), x: 570, y: 140 }]) }, [models])
   const pushHistory = () => setHistory(current => [...current.slice(-49), { nodes: nodes.map(node => ({ ...node })), connections: connections.map(connection => ({ ...connection })) }])
   const clearPendingConnection = () => { setPendingConnection(null); setConnectionPointer(null) }
   const undo = () => setHistory(current => { if (!current.length) return current; const previous = current[current.length - 1]; setNodes(previous.nodes); setConnections(previous.connections); setSelectedNodes([]); clearPendingConnection(); return current.slice(0, -1) })
