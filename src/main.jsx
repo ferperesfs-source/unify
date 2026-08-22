@@ -55,6 +55,17 @@ const marketingStudioTemplates = [
   { id: 'motion-04', title: 'Cena de campanha', category: 'ads', mode: 'video', video: 'https://cdn.higgsfield.ai/marketing-studio-motion-preview/6daa737e-d3a7-42c1-9544-d095a126519f.mp4', prompt: 'Transforme o produto em uma cena curta de campanha com narrativa visual e composição premium.' },
   { id: 'motion-05', title: 'Produto flutuante', category: 'motion', mode: 'video', video: 'https://cdn.higgsfield.ai/marketing-studio-motion-preview/d5840f15-1a7e-482c-912a-36d3bd30c078.mp4', prompt: 'Anime o produto flutuando de forma elegante, com profundidade, sombra e movimento natural.' },
 ]
+const marketingVideoStyles = [
+  { id: '2d-product-motion', title: '2D product motion', group: 'Motion', video: 'https://cdn.higgsfield.ai/marketing-studio-motion-preview/04f54ce5-c138-46f9-b3ff-9326d1383ca3.mp4', direction: 'Use animação 2D de produto, movimentos gráficos precisos, composição publicitária limpa e transições fluidas.' },
+  { id: 'shopping', title: 'Shopping', group: 'UGC', video: 'https://cdn.higgsfield.ai/marketing-studio-v2-ugc/5a9ba7c1-144b-4158-8582-47548837dd85.mp4', direction: 'Apresente a descoberta e a compra do produto em uma experiência de shopping espontânea e convincente.' },
+  { id: 'at-home', title: 'At home', group: 'UGC', video: 'https://cdn.higgsfield.ai/marketing-studio-v2-ugc/a0a7c111-da50-4c3f-a2e0-172d4a9deefb.mp4', direction: 'Mostre o produto em uso dentro de casa, com linguagem cotidiana, iluminação natural e sensação autêntica.' },
+  { id: 'delivery', title: 'Delivery', group: 'UGC', video: 'https://cdn.higgsfield.ai/marketing-studio-v2-ugc/a9f10f0d-0acd-4b86-9ee8-6e4d6a2bcb76.mp4', direction: 'Construa a cena em torno da entrega e do primeiro contato com o produto, valorizando expectativa e conveniência.' },
+  { id: 'review', title: 'Review', group: 'UGC', video: 'https://cdn.higgsfield.ai/marketing-studio-v2-ugc/0307d62d-efd8-4906-9162-be99158d25fb.mp4', direction: 'Crie um review UGC direto para a câmera, com demonstração prática, reação natural e benefício principal claro.' },
+  { id: 'try-on', title: 'Try-on', group: 'UGC', video: 'https://cdn.higgsfield.ai/marketing-studio-v2-ugc/7a9bcdd4-c60f-4aea-ad4f-14b607479d76.mp4', direction: 'Demonstre o produto sendo experimentado, destacando ajuste, aparência e reação de forma natural.' },
+  { id: 'unboxing', title: 'Unboxing', group: 'UGC', video: 'https://cdn.higgsfield.ai/marketing-studio-v2-ugc/73366684-a5c0-4c71-8061-95c7486deceb.mp4', direction: 'Mostre um unboxing progressivo, da embalagem aos detalhes do produto, com reação autêntica e ritmo de rede social.' },
+  { id: 'tutorial', title: 'Tutorial', group: 'UGC', video: 'https://cdn.higgsfield.ai/marketing-studio-v2-ugc/97464e03-828d-4177-a29d-11d165d2f7bb.mp4', direction: 'Explique visualmente como usar o produto em passos simples, claros e fáceis de acompanhar.' },
+  { id: 'before-after', title: 'Before/after', group: 'UGC', video: 'https://cdn.higgsfield.ai/marketing-studio-v2-ugc/703da148-3bfa-42d9-a674-4371ebbc857f.mp4', direction: 'Estruture o vídeo como antes e depois, tornando a transformação visual imediata, clara e crível.' },
+]
 const formatDate = value => new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(new Date(value))
 const formatRelative = value => { const minutes = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 60000)); if (minutes < 1) return 'agora'; if (minutes < 60) return `há ${minutes} min`; const hours = Math.floor(minutes / 60); return hours < 24 ? `há ${hours}h` : formatDate(value) }
 const getProviderLogo = model => { const source = `${model.id || ''} ${model.display_name || ''} ${model.owned_by || ''} ${model.provider_display || ''}`.toLowerCase().replace(/[^a-z0-9]/g, ''); return Object.entries(providerLogos).find(([key]) => source.includes(key))?.[1] }
@@ -64,6 +75,8 @@ const getModelControls = model => {
   const aspect = { key: 'aspect_ratio', label: 'Proporção', type: 'select', options: ['16:9', '9:16', '1:1'], default: '16:9' }
   if (model.category === 'image') return [aspect, { key: 'resolution', label: 'Resolução', type: 'select', options: ['1k', '2k', '4k'], default: '1k' }]
   if (model.category !== 'video' || id.includes('edit') || id.includes('upscale')) return []
+  if (id.includes('happyhorse-1.')) return [{ key: 'duration', label: 'Duração', suffix: 's', type: 'select', options: range(3, 15), default: 5 }, { ...aspect, key: 'ratio', options: ['16:9', '9:16', '1:1', '4:3', '3:4'] }, { key: 'resolution', label: 'Resolução', type: 'select', options: ['720P', '1080P'], default: '1080P' }]
+  if (id.includes('wan-2.7-video')) return [{ key: 'duration', label: 'Duração', suffix: 's', type: 'select', options: range(2, 15), default: 5 }, { ...aspect, key: 'ratio', options: ['16:9', '9:16', '1:1', '4:3', '3:4'] }, { key: 'resolution', label: 'Resolução', type: 'select', options: ['720P', '1080P'], default: '1080P' }]
   if (id.includes('seedance-1.5')) return [{ key: 'duration', label: 'Duração', suffix: 's', type: 'select', options: [5, 10, 12], default: 5 }, aspect, { key: 'resolution', label: 'Resolução', type: 'select', options: ['720p', '1080p'], default: '720p' }]
   if (id.includes('seedance-2')) return [{ key: 'mode', label: 'Modo', type: 'select', options: ['text_to_video', 'first_last_frame', 'omni_reference'], default: 'text_to_video' }, { key: 'duration', label: 'Duração', suffix: 's', type: 'select', options: range(4, 15), default: 5 }, aspect, { key: 'resolution', label: 'Resolução', type: 'select', options: ['720p', '1080p'], default: '720p' }]
   if (id.startsWith('google/veo-3.1')) return [{ key: 'duration', label: 'Duração', suffix: 's', type: 'select', options: [4, 6, 8], default: 4 }, { ...aspect, options: ['16:9', '9:16'] }]
@@ -75,6 +88,12 @@ const getModelControls = model => {
 const getDefaultModelSettings = model => Object.fromEntries(getModelControls(model).map(control => [control.key, control.default]))
 const wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds))
 const unwrapTask = payload => payload?.data || payload || {}
+const buildMarketingStudioInput = (model, prompt, aspectRatio, duration, mode) => {
+  if (mode === 'image') return { prompt, aspect_ratio: aspectRatio, resolution: '1k' }
+  const id = model?.id || ''
+  const ratioKey = id.includes('happyhorse-1.') || id.includes('wan-2.7-video') ? 'ratio' : 'aspect_ratio'
+  return { prompt, [ratioKey]: aspectRatio, duration: Number(duration), ...(id.includes('happyhorse-1.') || id.includes('wan-2.7-video') ? { mode: 't2v', resolution: '1080P' } : {}) }
+}
 const buildReferenceInput = (model, file, url, settings = {}) => {
   const id = model.id || ''
   if (id.includes('seedance-2')) return settings.mode === 'omni_reference' || file.type.startsWith('video/') ? { references: [url] } : { first_frame_url: url }
@@ -283,29 +302,48 @@ function MarketingStudio({ models, loading, error, userId, onRetry, onGeneration
   const [prompt, setPrompt] = useState('')
   const [modelId, setModelId] = useState('')
   const [aspectRatio, setAspectRatio] = useState('3:4')
+  const [duration, setDuration] = useState(5)
+  const [videoStyleId, setVideoStyleId] = useState(marketingVideoStyles[0].id)
+  const [styleOpen, setStyleOpen] = useState(false)
+  const [styleSearch, setStyleSearch] = useState('')
   const [avatar, setAvatar] = useState(null)
   const [product, setProduct] = useState(null)
   const [generation, setGeneration] = useState(null)
   const [estimate, setEstimate] = useState(null)
   const [estimateLoading, setEstimateLoading] = useState(false)
-  const studioModels = useMemo(() => models.filter(model => model.category === mode), [models, mode])
+  const studioModels = useMemo(() => models.filter(model => model.category === mode && !/(edit|upscale|extend|motion-control)/.test(model.id || '')), [models, mode])
   const selectedModel = studioModels.find(model => model.id === modelId) || studioModels[0]
+  const selectedVideoStyle = marketingVideoStyles.find(style => style.id === videoStyleId) || marketingVideoStyles[0]
+  const durationControl = selectedModel && getModelControls(selectedModel).find(control => control.key === 'duration')
+  const durationOptions = mode === 'video' ? (durationControl?.options || [5]) : []
+  const aspectControl = selectedModel && getModelControls(selectedModel).find(control => control.label === 'Proporção')
+  const aspectOptions = aspectControl?.options || ['16:9', '9:16', '1:1']
+  const filteredVideoStyles = useMemo(() => marketingVideoStyles.filter(style => `${style.title} ${style.group}`.toLowerCase().includes(styleSearch.trim().toLowerCase())), [styleSearch])
+  const effectivePrompt = mode === 'video' ? `${prompt.trim() || 'Campanha de produto'}\n\nDireção de estilo: ${selectedVideoStyle.direction}` : prompt.trim() || 'Campanha de produto'
   const templates = useMemo(() => marketingStudioTemplates.filter(template => category === 'all' || template.category === category), [category])
 
   useEffect(() => { if (!studioModels.length) return; if (!studioModels.some(model => model.id === modelId)) setModelId(studioModels[0].id) }, [mode, studioModels, modelId])
+  useEffect(() => { if (mode !== 'video' || !durationOptions.length) return; if (!durationOptions.includes(Number(duration))) setDuration(Number(durationControl?.default ?? durationOptions[0])) }, [mode, selectedModel?.id, duration, durationControl?.default, durationOptions])
+  useEffect(() => { if (!aspectOptions.includes(aspectRatio)) setAspectRatio(aspectControl?.default || aspectOptions[0]) }, [selectedModel?.id, aspectRatio, aspectControl?.default, aspectOptions])
+  useEffect(() => {
+    if (!styleOpen) return undefined
+    const closeWithEscape = event => { if (event.key === 'Escape') setStyleOpen(false) }
+    window.addEventListener('keydown', closeWithEscape)
+    return () => window.removeEventListener('keydown', closeWithEscape)
+  }, [styleOpen])
   useEffect(() => {
     if (!selectedModel) { setEstimate(null); return undefined }
     let active = true
     const timer = setTimeout(async () => {
       setEstimateLoading(true)
       try {
-        const input = { prompt: prompt.trim() || 'Campanha de produto', aspect_ratio: aspectRatio, ...(mode === 'video' ? { duration: 5 } : { resolution: '1k' }) }
+        const input = buildMarketingStudioInput(selectedModel, effectivePrompt, aspectRatio, duration, mode)
         const response = await unifically.estimateTask({ model: selectedModel.id, input })
         if (active) setEstimate(response?.data || null)
       } catch { if (active) setEstimate(null) } finally { if (active) setEstimateLoading(false) }
     }, 550)
     return () => { active = false; clearTimeout(timer) }
-  }, [selectedModel?.id, mode, aspectRatio, prompt])
+  }, [selectedModel?.id, mode, aspectRatio, duration, effectivePrompt])
 
   const selectTemplate = template => { setCategory(template.category); setMode(template.mode); setPrompt(template.prompt); setGeneration(null); document.querySelector('.studio-prompt')?.focus() }
   const chooseReference = (kind, file) => {
@@ -323,7 +361,7 @@ function MarketingStudio({ models, loading, error, userId, onRetry, onGeneration
     let generationId = null
     try {
       setGeneration({ status: 'processing', stage: 'Preparando campanha' })
-      let input = { prompt: cleanPrompt, aspect_ratio: aspectRatio, ...(mode === 'video' ? { duration: 5 } : { resolution: '1k' }) }
+      let input = buildMarketingStudioInput(selectedModel, mode === 'video' ? `${cleanPrompt}\n\nDireção de estilo: ${selectedVideoStyle.direction}` : cleanPrompt, aspectRatio, duration, mode)
       const assets = [{ kind: 'avatar', file: avatar }, { kind: 'product', file: product }].filter(asset => asset.file)
       if (assets.length) {
         setGeneration({ status: 'processing', stage: assets.length > 1 ? 'Enviando avatar e produto' : `Enviando ${assets[0].kind === 'avatar' ? 'avatar' : 'produto'}` })
@@ -331,6 +369,12 @@ function MarketingStudio({ models, loading, error, userId, onRetry, onGeneration
         const urls = uploadedAssets.map(asset => asset.url)
         const modelKey = selectedModel.id || ''
         if (mode === 'image') input.image_urls = urls
+        else if (modelKey.includes('happyhorse-1.')) input = { ...input, mode: 'r2v', reference_image_urls: urls }
+        else if (modelKey.includes('wan-2.7-video')) {
+          const imageUrls = uploadedAssets.filter(asset => asset.file.type.startsWith('image/')).map(asset => asset.url)
+          const videoUrls = uploadedAssets.filter(asset => asset.file.type.startsWith('video/')).map(asset => asset.url)
+          input = { ...input, mode: 'r2v', ...(imageUrls.length ? { reference_image_urls: imageUrls } : {}), ...(videoUrls.length ? { reference_video_urls: videoUrls } : {}) }
+        }
         else if (modelKey.includes('seedance-2')) input = { ...input, mode: 'omni_reference', references: urls }
         else if (modelKey.includes('gemini-omni') || modelKey.startsWith('google/veo')) input.reference_image_urls = urls
         else if (uploadedAssets.length === 1) input = { ...input, ...buildReferenceInput(selectedModel, uploadedAssets[0].file, uploadedAssets[0].url, input) }
@@ -368,7 +412,8 @@ function MarketingStudio({ models, loading, error, userId, onRetry, onGeneration
   return <section className="marketing-studio">
     <header className="studio-topbar"><div><IconButton className="studio-menu" label="Abrir menu" onClick={onOpenMenu}><HambergerMenu size="21" /></IconButton><span className="studio-symbol"><Flash size="18" variant="Bold" /></span><div><b>Marketing Studio</b><small>Campanhas com modelos da Unifically</small></div></div><div className="studio-links"><button onClick={onOpenHistory}>Minhas gerações</button><button onClick={() => document.querySelector('.studio-templates')?.scrollIntoView({ behavior: 'smooth' })}>Templates</button></div></header>
     <div className="studio-scroll"><section className="studio-hero"><div className="studio-showcase">{marketingStudioTemplates.slice(0, 6).map((template, index) => <button type="button" className="studio-showcase-card" key={template.id} onClick={() => selectTemplate(template)} style={{ '--studio-index': index }}><video src={template.video} autoPlay muted loop playsInline preload="metadata" /><span>{template.title}</span></button>)}</div><div className="studio-title"><span>Conteúdo de campanha em um só fluxo</span><h1>Transforme qualquer produto<br />em conteúdo pronto para publicar.</h1></div>
-      <div className="studio-composer"><div className="studio-mode" role="tablist" aria-label="Tipo de geração"><button className={mode === 'image' ? 'active' : ''} onClick={() => { setMode('image'); setGeneration(null) }}><Gallery size="18" />Imagem</button><button className={mode === 'video' ? 'active' : ''} onClick={() => { setMode('video'); setGeneration(null) }}><Flash size="18" />Vídeo</button></div><div className="studio-input-shell"><textarea className="studio-prompt" value={prompt} onChange={event => setPrompt(event.target.value)} placeholder="Descreva o conteúdo que deseja criar..." /><div className="studio-input-actions"><select aria-label="Modelo" value={selectedModel?.id || ''} onChange={event => setModelId(event.target.value)} disabled={loading || !studioModels.length}>{loading ? <option>Carregando modelos...</option> : studioModels.length ? studioModels.map(model => <option value={model.id} key={model.id}>{model.display_name || model.id}</option>) : <option>Nenhum modelo disponível</option>}</select><select aria-label="Proporção" value={aspectRatio} onChange={event => setAspectRatio(event.target.value)}><option>3:4</option><option>1:1</option><option>9:16</option><option>16:9</option></select></div></div><StudioAssetField label="Avatar" file={avatar} accept="image/*" onChange={file => chooseReference('avatar', file)} onRemove={() => setAvatar(null)} /><StudioAssetField label="Produto" file={product} accept="image/*,video/*" onChange={file => chooseReference('product', file)} onRemove={() => setProduct(null)} /><button type="button" className="studio-generate" onClick={generate} disabled={generation?.status === 'processing' || !selectedModel} aria-busy={generation?.status === 'processing'}><Flash size="19" variant="Bold" /><span>{generation?.status === 'processing' ? generation.stage : selectedModel ? 'Gerar' : 'Aguardando modelo'}</span><small>{estimateLoading ? 'calculando custo' : Number.isFinite(usd) ? `${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 3 }).format(usd)} · ${Number.isFinite(brl) ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(brl) : 'BRL indisponível'}` : 'estimativa no clique'}</small></button></div>
+      <div className="studio-composer"><div className="studio-mode" role="tablist" aria-label="Tipo de geração"><button className={mode === 'image' ? 'active' : ''} onClick={() => { setMode('image'); setGeneration(null); setStyleOpen(false) }}><Gallery size="18" />Imagem</button><button className={mode === 'video' ? 'active' : ''} onClick={() => { setMode('video'); setGeneration(null) }}><Flash size="18" />Vídeo</button></div><div className="studio-input-shell"><textarea className="studio-prompt" value={prompt} onChange={event => setPrompt(event.target.value)} placeholder={mode === 'video' ? 'Descreva o vídeo que deseja criar...' : 'Descreva a imagem que deseja criar...'} /><div className="studio-input-actions"><select aria-label="Modelo" value={selectedModel?.id || ''} onChange={event => setModelId(event.target.value)} disabled={loading || !studioModels.length}>{loading ? <option>Carregando modelos...</option> : studioModels.length ? studioModels.map(model => <option value={model.id} key={model.id}>{model.display_name || model.id}</option>) : <option>Nenhum modelo disponível</option>}</select>{mode === 'video' && <button type="button" className="studio-style-trigger" onClick={() => setStyleOpen(true)} aria-haspopup="dialog"><Flash size="14" variant="Bold" /><span>{selectedVideoStyle.title}</span><ArrowRight size="13" /></button>}<select aria-label="Proporção" value={aspectRatio} onChange={event => setAspectRatio(event.target.value)}>{aspectOptions.map(option => <option key={option}>{option}</option>)}</select>{mode === 'video' && <select className="studio-duration" aria-label="Duração do vídeo" value={duration} onChange={event => setDuration(Number(event.target.value))}>{durationOptions.map(option => <option key={option} value={option}>{option}s</option>)}</select>}</div></div><StudioAssetField label="Avatar" file={avatar} accept="image/*" onChange={file => chooseReference('avatar', file)} onRemove={() => setAvatar(null)} /><StudioAssetField label="Produto" file={product} accept="image/*,video/*" onChange={file => chooseReference('product', file)} onRemove={() => setProduct(null)} /><button type="button" className="studio-generate" onClick={generate} disabled={generation?.status === 'processing' || !selectedModel} aria-busy={generation?.status === 'processing'}><Flash size="19" variant="Bold" /><span>{generation?.status === 'processing' ? generation.stage : selectedModel ? 'Gerar' : 'Aguardando modelo'}</span><small>{estimateLoading ? 'calculando custo' : Number.isFinite(usd) ? `${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 3 }).format(usd)} · ${Number.isFinite(brl) ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(brl) : 'BRL indisponível'}` : 'estimativa no clique'}</small></button></div>
+      {styleOpen && <div className="studio-style-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setStyleOpen(false) }}><section className="studio-style-dialog" role="dialog" aria-modal="true" aria-labelledby="studio-style-title"><header><div><span>Preset de vídeo</span><h2 id="studio-style-title">Escolha o estilo</h2></div><button type="button" onClick={() => setStyleOpen(false)} aria-label="Fechar estilos"><CloseCircle size="22" /></button></header><label className="studio-style-search"><SearchNormal1 size="18" /><input autoFocus value={styleSearch} onChange={event => setStyleSearch(event.target.value)} placeholder="Buscar estilos" /></label><div className="studio-style-grid">{filteredVideoStyles.map(style => <button type="button" key={style.id} className={`studio-style-card ${style.id === videoStyleId ? 'selected' : ''}`} onClick={() => { setVideoStyleId(style.id); setStyleOpen(false); setStyleSearch('') }}><video src={style.video} muted loop playsInline preload="metadata" onMouseEnter={event => event.currentTarget.play().catch(() => {})} onMouseLeave={event => { if (style.id !== videoStyleId) { event.currentTarget.pause(); event.currentTarget.currentTime = 0 } }} /><span><small>{style.group}</small><b>{style.title}</b></span>{style.id === videoStyleId && <i><TickCircle size="18" variant="Bold" /></i>}</button>)}</div>{!filteredVideoStyles.length && <p className="studio-style-empty">Nenhum estilo corresponde à busca.</p>}</section></div>}
       {error && <div className="studio-error"><CloseCircle size="17" />{error}<button onClick={onRetry}>Tentar novamente</button></div>}
       {generation && <section className="studio-result"><div><span>Resultado</span><b>{generation.status === 'processing' ? 'Sua campanha está sendo produzida' : generation.status === 'completed' ? 'Conteúdo concluído' : 'A geração precisa de atenção'}</b></div><ModelGenerationResult generation={generation} category={mode} /></section>}
     </section>
