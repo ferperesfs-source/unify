@@ -12,6 +12,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@lobehub/icons-static-svg": "1.94.0",
     "@supabase/supabase-js": "2.112.3",
     "@vitejs/plugin-react": "latest",
     "framer-motion": "^13.1.1",
