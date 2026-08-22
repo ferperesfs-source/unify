@@ -25,6 +25,10 @@ const apiProviders = [
   { name: 'Flux', logo: '/providers/black-forest-labs.svg' }, { name: 'Kling', logo: '/providers/kling.svg' },
 ]
 const providerLogos = {
+  qwen: '/providers/qwen-color.svg', alibaba: '/providers/alibaba-color.svg', alibabacloud: '/providers/alibaba-color.svg',
+  bytedance: '/providers/bytedance-color.svg', seedance: '/providers/bytedance-color.svg', seedream: '/providers/bytedance-color.svg',
+  minimax: '/providers/minimax-color.svg', hailuo: '/providers/hailuo-color.svg', stability: '/providers/stability-color.svg',
+  stableimage: '/providers/stability-color.svg', stablediffusion: '/providers/stability-color.svg', fal: '/providers/fal-color.svg',
   openai: '/providers/openai.svg', anthropic: '/providers/anthropic.svg', google: '/providers/google.svg',
   gemini: '/providers/google.svg', xai: '/providers/xai.svg', cursor: '/providers/cursor.svg',
   moonshot: '/providers/moonshotai.svg', kimi: '/providers/moonshotai.svg', elevenlabs: '/providers/elevenlabs.svg',
@@ -39,7 +43,7 @@ const modelGroups = [
 ]
 const formatDate = value => new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(new Date(value))
 const formatRelative = value => { const minutes = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 60000)); if (minutes < 1) return 'agora'; if (minutes < 60) return `há ${minutes} min`; const hours = Math.floor(minutes / 60); return hours < 24 ? `há ${hours}h` : formatDate(value) }
-const getProviderLogo = model => { const source = `${model.owned_by || ''} ${model.provider_display || ''}`.toLowerCase().replace(/[^a-z0-9]/g, ''); return Object.entries(providerLogos).find(([key]) => source.includes(key))?.[1] }
+const getProviderLogo = model => { const source = `${model.id || ''} ${model.display_name || ''} ${model.owned_by || ''} ${model.provider_display || ''}`.toLowerCase().replace(/[^a-z0-9]/g, ''); return Object.entries(providerLogos).find(([key]) => source.includes(key))?.[1] }
 const wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds))
 const unwrapTask = payload => payload?.data || payload || {}
 const buildReferenceInput = (model, file, url) => {
