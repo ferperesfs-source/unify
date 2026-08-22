@@ -1,0 +1,13 @@
+/* Styling layer for components sourced from the free Skiper UI registry. */
+.button.light{color:#181817}
+.skiper-text-roll{position:relative;display:block;overflow:hidden;line-height:.9}.skiper-letter{display:inline-block}.skiper-text-roll-copy{position:absolute;inset:0}.skiper-action-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:10px}.skiper-action-wrap>small{font:9px 'DM Mono';text-transform:uppercase;letter-spacing:.1em;color:#626451}.skiper-expand{height:60px;padding:0;border:0;background:#1d1d1b;color:#fff;display:flex;align-items:center;overflow:hidden;position:relative;box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}.skiper-expand-lead,.skiper-expand-go{width:60px;height:60px;flex:0 0 60px;display:grid;place-items:center}.skiper-expand-lead{color:var(--lime)}.skiper-expand-copy{flex:1;white-space:nowrap;display:flex;align-items:center;justify-content:center;gap:8px;font-size:11px;font-weight:700}.skiper-expand-copy svg{color:var(--lime)}.skiper-expand-go{background:#30302d}.skiper-credit{color:#b1c977;text-decoration:underline;text-underline-offset:3px}.tool-scroll{max-height:455px;overflow:auto;padding-right:3px}.tool-scroll::-webkit-scrollbar{width:4px}.tool-scroll::-webkit-scrollbar-thumb{background:#cac7be;border-radius:9px}
+
+@supports (animation-timeline:scroll()){
+  @property --ft{syntax:"<length>";inherits:false;initial-value:0px}
+  @property --fb{syntax:"<length>";inherits:false;initial-value:40px}
+  .scroll-fade-y{--ft:0px;--fb:40px;mask-image:linear-gradient(to bottom,transparent 0,#000 var(--ft),#000 calc(100% - var(--fb)),transparent 100%);mask-size:100% 100%;mask-repeat:no-repeat;animation:skiperFadeTop 1 linear both,skiperFadeBottom 1 linear both;animation-timeline:scroll(self),scroll(self);animation-range:0% 12%,88% 100%}
+}
+@keyframes skiperFadeTop{from{--ft:0px}to{--ft:40px}}
+@keyframes skiperFadeBottom{from{--fb:40px}to{--fb:0px}}
+
+@media(max-width:600px){.skiper-action-wrap{align-items:flex-start}.skiper-expand.expanded{max-width:290px}.skiper-expand-copy{font-size:10px}}
