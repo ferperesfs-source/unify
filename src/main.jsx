@@ -5,6 +5,8 @@ import './styles.css'
 import './skiper.css'
 import './design-system.css'
 import './kage.css'
+import './volta.css'
+import { VoltaLanding } from './components/VoltaLanding'
 import { TextRoll } from './components/skiper/TextRoll'
 import { ScrollFade } from './components/skiper/ScrollFade'
 import { ProgressiveBlur } from './components/skiper/ProgressiveBlur'
@@ -13,7 +15,7 @@ import { isSupabaseConfigured, supabase } from './lib/supabase'
 import { createGenerationRecord, createProject, getCatalog, getGenerationHistory, getWorkspace, signInWithGoogle, signInWithPassword, signOut, signUpWithPassword, updateGenerationRecord, uploadGenerationReference } from './services/supabaseData'
 import { unifically } from './services/unificallyClient'
 
-const KageWorld = React.lazy(() => import('./components/KageWorld').then(module => ({ default: module.KageWorld })))
+const KageWorld = () => null
 
 const iconMap = { DocumentText, Flash, Gallery, Chart, Code, MessageText, Briefcase }
 const nav = [
@@ -137,7 +139,7 @@ function KageForeground({ scene }) {
   return <div className={`kx-fg kx-fg-${scene}`} aria-hidden="true">{scenes[scene].map(([file, className, from], index) => <span className={`kx-fg-el ${className}`} data-from={from} style={{ '--fg-delay': `${index * 90}ms` }} key={`${scene}-${file}`}><img src={`${kageAsset}foreground/png/${file}`} alt="" loading="lazy" decoding="async" /></span>)}</div>
 }
 
-function Landing({ session }) {
+function KageLanding({ session }) {
   const [menu, setMenu] = useState(false)
   const [active, setActive] = useState(0)
   const { tools, loading, error } = useCatalog()
@@ -271,6 +273,11 @@ function Landing({ session }) {
 
     <div className="kx-rail" aria-label="Progresso da página">{['inicio', 'portal', 'catalogo', 'metodo', 'acesso'].map((id, index) => <a className={active === index ? 'on' : ''} href={`#${id}`} aria-label={`Ir para a seção ${index + 1}`} key={id}><i /></a>)}</div>
   </div>
+}
+
+function Landing({ session }) {
+  const { tools, loading, error } = useCatalog()
+  return <VoltaLanding session={session} tools={tools} loading={loading} error={error} videos={marketingStudioTemplates} />
 }
 
 function Login() {
