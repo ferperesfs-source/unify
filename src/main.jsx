@@ -118,118 +118,158 @@ function Logo({ dark = false }) { return <button className={`logo ${dark ? 'logo
 function CatalogToolIcon({ tool }) { const Icon = iconMap[tool.icon] || Category; return <span className="kage-catalog-icon" style={{ '--tool-color': tool.color || '#e0231c' }}><Icon size="20" variant="Broken" /></span> }
 function IconButton({ children, label, onClick, className = '', type = 'button' }) { return <button type={type} className={`icon-button ${className}`} aria-label={label} onClick={onClick}>{children}</button> }
 
+const kageAsset = '/landing-pages/secret-pathways-assets/'
+
+function KageBrand() {
+  return <button className="kx-brand" onClick={() => { location.hash = '' }} aria-label="Ir para o início">
+    <svg viewBox="0 0 44 44" fill="none" aria-hidden="true"><circle cx="22" cy="25" r="8.6" fill="#e0231c" fillOpacity=".9" /><path d="M5 13h34M9 18.4h26M22 8.5v27" stroke="#dfe7e0" strokeWidth="1.5" /><path d="M14 35.5h16" stroke="#dfe7e0" strokeWidth="1.2" strokeOpacity=".6" /></svg>
+    <span><b>UNIFY</b><i>INTELLIGENCE IN ONE FLOW</i></span>
+  </button>
+}
+
+function KageForeground({ scene }) {
+  const scenes = {
+    portal: [['temple-wall.webp', 'kx-wall', 'left'], ['pine-tree.webp', 'kx-pine', 'right'], ['tall-grass.webp', 'kx-grass', 'up']],
+    catalog: [['sakura-branch.webp', 'kx-sakura kx-sway', 'left'], ['maple-leaves.webp', 'kx-leaves kx-sway', 'right'], ['stone-lantern.webp', 'kx-lantern', 'up'], ['garden-bush.webp', 'kx-bush', 'up']],
+    method: [['temple-wall.webp', 'kx-wall kx-flip', 'right'], ['basalt-stones.webp', 'kx-stones', 'up'], ['tall-grass.webp', 'kx-grass', 'up']],
+    access: [['hill.webp', 'kx-hill', 'up'], ['shrine-ruins.webp', 'kx-ruins', 'left'], ['tall-grass.webp', 'kx-grass', 'up'], ['sakura-branch.webp', 'kx-sakura', 'left']],
+  }
+  return <div className={`kx-fg kx-fg-${scene}`} aria-hidden="true">{scenes[scene].map(([file, className, from], index) => <span className={`kx-fg-el ${className}`} data-from={from} style={{ '--fg-delay': `${index * 90}ms` }} key={`${scene}-${file}`}><img src={`${kageAsset}foreground/png/${file}`} alt="" loading="lazy" decoding="async" /></span>)}</div>
+}
+
 function Landing({ session }) {
   const [menu, setMenu] = useState(false)
+  const [active, setActive] = useState(0)
   const { tools, loading, error } = useCatalog()
   const enter = () => { location.hash = session ? 'dashboard' : 'login' }
-  const featuredTools = tools.slice(0, 6)
+  const featured = tools.slice(0, 3)
   const chapters = [
-    ['01', 'O portal', '#portal'],
-    ['02', 'O catálogo', '#catalogo'],
-    ['03', 'O método', '#metodo'],
-    ['04', 'O acesso', '#acesso'],
+    ['01', 'O portal', 'Um único limiar para todas as ferramentas.', '#portal'],
+    ['02', 'Catálogo vivo', 'Modelos reais, organizados por intenção.', '#catalogo'],
+    ['03', 'Método visual', 'Do prompt ao resultado sem perder contexto.', '#metodo'],
+    ['04', 'Workspace', 'Seu próximo fluxo começa em um quadro limpo.', '#acesso'],
   ]
+
+  useEffect(() => {
+    const reveal = new IntersectionObserver(entries => entries.forEach(entry => entry.isIntersecting && entry.target.classList.add('rv-in')), { threshold: 0.16 })
+    document.querySelectorAll('.kage-landing [data-rv]').forEach(element => reveal.observe(element))
+    const sections = [...document.querySelectorAll('.kx-camera-section')]
+    const sectionObserver = new IntersectionObserver(entries => entries.forEach(entry => {
+      if (!entry.isIntersecting) return
+      const index = sections.indexOf(entry.target)
+      setActive(index)
+      sections.forEach((section, sectionIndex) => section.classList.toggle('is-active', sectionIndex === index))
+    }), { rootMargin: '-38% 0px -42% 0px' })
+    sections.forEach(section => sectionObserver.observe(section))
+    const nav = document.querySelector('.kx-nav')
+    const onScroll = () => nav?.classList.toggle('stuck', window.scrollY > 24)
+    onScroll(); window.addEventListener('scroll', onScroll, { passive: true })
+    return () => { reveal.disconnect(); sectionObserver.disconnect(); window.removeEventListener('scroll', onScroll) }
+  }, [])
 
   return <div className="landing kage-landing">
     <a className="skip-link" href="#main-content">Pular para o conteúdo</a>
     <React.Suspense fallback={null}><KageWorld /></React.Suspense>
-    <div className="kage-grain" aria-hidden="true" />
-    <div className="kage-vignette" aria-hidden="true" />
+    <div className="kx-vignette" aria-hidden="true" /><div className="kx-grain" aria-hidden="true" />
 
-    <header className="kage-nav">
-      <div className="kage-nav-brand"><Logo /><span>Workspace de inteligência criativa</span></div>
-      <nav className={menu ? 'kage-nav-links open' : 'kage-nav-links'} aria-label="Navegação principal">
-        <a href="#portal" onClick={() => setMenu(false)}>O portal</a>
-        <a href="#catalogo" onClick={() => setMenu(false)}>Ferramentas</a>
-        <a href="#metodo" onClick={() => setMenu(false)}>Método</a>
-        <button onClick={enter}>{session ? 'Workspace' : 'Acesso'}</button>
+    <header className={`kx-nav ${menu ? 'menu-open' : ''}`}>
+      <KageBrand />
+      <nav className="kx-nav-links" aria-label="Navegação principal">
+        <a href="#portal" onClick={() => setMenu(false)}><span>Plataforma</span><span className="alt">PORTAL</span></a>
+        <a href="#catalogo" onClick={() => setMenu(false)}><span>Ferramentas</span><span className="alt">CATÁLOGO</span></a>
+        <a href="#metodo" onClick={() => setMenu(false)}><span>Método</span><span className="alt">FLUXO</span></a>
+        <button onClick={enter}><span>{session ? 'Workspace' : 'Acesso'}</span><span className="alt">ENTRAR</span></button>
       </nav>
-      <button className="kage-access" onClick={enter}>{session ? 'Abrir workspace' : 'Entrar'} <ArrowRight size="17" /></button>
-      <button className="icon-button kage-menu" aria-label="Abrir menu" aria-expanded={menu} onClick={() => setMenu(!menu)}><HambergerMenu size="22" /></button>
+      <button className={`kx-burger ${menu ? 'active' : ''}`} aria-label={menu ? 'Fechar menu' : 'Abrir menu'} aria-expanded={menu} onClick={() => setMenu(!menu)}><i /><i /></button>
     </header>
 
-    <main id="main-content" className="kage-page">
-      <section className="kage-hero" aria-labelledby="kage-title">
-        <div className="kage-hero-copy">
-          <p className="kage-kicker"><span /> Capítulo 00 — o portal unificado</p>
-          <h1 id="kage-title"><span>Todas as ideias.</span><span>Um único fluxo.</span><span>Sem ruído.</span></h1>
-          <p className="kage-lede">Um ambiente para conectar modelos, referências e decisões. A criação acontece no mesmo lugar em que o trabalho ganha forma.</p>
-          <div className="kage-actions">
-            <button className="kage-primary" onClick={enter}>{session ? 'Continuar criando' : 'Entrar no workspace'} <ArrowRight size="18" /></button>
-            <a href="#portal">Conhecer a plataforma</a>
+    <main id="main-content" className="kx-page">
+      <section className="kx-hero kx-camera-section is-active" id="inicio">
+        <div className="kx-hero-top">
+          <div className="kx-eyebrow" data-rv="fade"><span /> Capítulo 00 — O portal oculto</div>
+          <h1 className="kx-display kx-h-hero" aria-label="Onde o silêncio revela o próximo fluxo">
+            <span className="kx-mask"><span>Onde o silêncio</span></span>
+            <span className="kx-mask"><span>revela o</span></span>
+            <span className="kx-mask"><span>próximo fluxo.</span></span>
+          </h1>
+          <p className="kx-hero-sub" data-rv="up">Entre por um único limiar para criar com modelos, referências e resultados conectados.</p>
+        </div>
+        <div className="kx-hero-spacer" />
+        <div className="kx-hero-foot">
+          <div className="kx-cue" data-rv="fade"><span>Role para entrar</span><span className="track"><i /></span></div>
+          <div className="kx-chapters">
+            {chapters.map(([number, title, text, href], index) => <a className={active === index + 1 ? 'on' : ''} href={href} data-rv="up" key={number}><span className="num">{number}</span><span className="tx"><b>{title}</b><p>{text}</p></span></a>)}
           </div>
         </div>
-        <div className="kage-wordmark" aria-hidden="true">UNIFY</div>
-        <div className="kage-side-copy" aria-hidden="true">UM · SÓ · FLUXO</div>
-        <div className="kage-scroll-cue"><span /> Role para atravessar</div>
-        <div className="kage-chapters" aria-label="Capítulos da página">
-          {chapters.map(([number, label, href]) => <a href={href} key={number}><b>{number}</b><span>{label}</span></a>)}
+        <a className="kx-peek" href="#catalogo" data-rv="fade" aria-label="Prévia do catálogo conectado">
+          <span className="kx-peek-frame"><img src={`${kageAsset}generated/kage-sanmon-preview.webp`} alt="" width="1536" height="1024" /></span>
+          <span className="kx-peek-play"><ArrowRight size="20" /></span>
+          <span className="kx-peek-caption"><b>CATÁLOGO</b><i>{error ? 'BASE INDISPONÍVEL' : loading ? 'SINCRONIZANDO' : `${tools.length} FERRAMENTAS ATIVAS`}</i></span>
+        </a>
+        <div className="kx-wordmark" aria-hidden="true">UNIFY</div>
+        <div className="kx-hero-side" aria-hidden="true">統合の道</div>
+      </section>
+
+      <section className="kx-story kx-camera-section" id="portal">
+        <KageForeground scene="portal" />
+        <div className="kx-sec-head" data-rv="fade"><span><b>01</b> — O limiar</span><i /><span>PORTAL</span></div>
+        <div className="kx-gate-grid">
+          <h2 className="kx-display kx-h-section" data-rv="up">Muitas inteligências. Uma entrada deixada aberta.</h2>
+          <div className="kx-gate-copy">
+            <p className="lead" data-rv="up">A Unify começa onde as abas terminam: um workspace escuro e contínuo que reúne criação visual, vídeo, áudio, texto e automação.</p>
+            <p data-rv="up">Cada ferramenta entra no mesmo quadro. Prompt, referência e resultado permanecem ligados para que a ideia atravesse o processo sem perder sua origem.</p>
+            <button className="kx-arrow-link" onClick={enter}><span>Atravessar o portal</span><span className="arrow"><ArrowRight size="15" /></span></button>
+          </div>
         </div>
-        <div className="kage-peek">
-          <span className={`kage-peek-status ${error ? 'error' : ''}`}><i /> {error ? 'Base indisponível' : 'Base conectada'}</span>
-          <strong>{error ? 'Não foi possível carregar o catálogo' : loading ? 'Sincronizando catálogo' : `${tools.length} ferramentas ativas`}</strong>
-          <small>{error ? 'Tente novamente em instantes' : 'Dados carregados do Supabase'}</small>
+        <div className="kx-stats" data-rv="up">
+          <div><b>{loading || error ? '—' : tools.length}</b><span>Ferramentas</span></div><div><b>API</b><span>Base ao vivo</span></div><div><b>RLS</b><span>Dados protegidos</span></div><div><b>∞</b><span>Possibilidades</span></div>
         </div>
       </section>
 
-      <section className="kage-section kage-portal" id="portal">
-        <div className="kage-section-index"><span>01</span><p>O portal</p></div>
-        <div className="kage-section-copy">
-          <p className="kage-kicker"><span /> Onde as ferramentas se encontram</p>
-          <h2>Ferramentas distintas.<br />Uma linguagem comum.</h2>
-          <p>O Unify transforma modelos isolados em um fluxo visual. Escolha, conecte, gere e preserve cada etapa sem perder o contexto.</p>
-        </div>
-        <div className="kage-metrics">
-          <div><strong>{loading || error ? '—' : tools.length}</strong><span>Ferramentas ativas</span></div>
-          <div><strong>API</strong><span>Catálogo ao vivo</span></div>
-          <div><strong>RLS</strong><span>Dados protegidos</span></div>
-          <div><strong>01</strong><span>Workspace contínuo</span></div>
-        </div>
-      </section>
-
-      <section className="kage-section kage-catalog" id="catalogo">
-        <div className="kage-section-index"><span>02</span><p>O catálogo</p></div>
-        <div className="kage-catalog-head">
-          <div><p className="kage-kicker"><span /> Seleção viva</p><h2>Um arsenal que<br />acompanha o projeto.</h2></div>
-          <p>O catálogo abaixo não é ilustrativo: ele é lido da mesma base que alimenta o seu workspace.</p>
-        </div>
-        <div className="kage-tool-list">
-          {loading && [0, 1, 2].map(i => <div className="kage-tool-row loading" key={i} />)}
-          {error && <div className="kage-catalog-error"><CloseCircle size="19" /><div><strong>Catálogo indisponível</strong><span>{error}</span></div></div>}
-          {!loading && featuredTools.map((tool, i) => <article className="kage-tool-row" key={tool.id}>
-            <span className="kage-tool-number">{String(i + 1).padStart(2, '0')}</span>
-            <div className="kage-tool-identity"><CatalogToolIcon tool={tool} /><div><h3>{tool.name}</h3><p>{tool.category}</p></div></div>
-            <span className="kage-tool-category">{tool.category || 'Ferramenta'}</span>
-            <button onClick={enter} aria-label={`Abrir ${tool.name}`}><ArrowRight size="19" /></button>
-          </article>)}
-        </div>
-        <div className="kage-provider-band" aria-label="Provedores disponíveis">
-          <div>{[...apiProviders, ...apiProviders].map((provider, i) => <span key={`${provider.name}-${i}`}><img src={provider.logo} alt="" />{provider.name}<i /></span>)}</div>
+      <section className="kx-story kx-camera-section" id="catalogo">
+        <KageForeground scene="catalog" />
+        <div className="kx-sec-head" data-rv="fade"><span><b>02</b> — Catálogo vivo</span><i /><span>MODELOS</span></div>
+        {error && <div className="kx-source-error"><CloseCircle size="18" /><span><b>Catálogo indisponível</b>{error}</span></div>}
+        <div className="kx-cards">
+          {[['kage-approach.webp', 'O primeiro modelo'], ['kage-lantern-court.webp', 'A corte iluminada'], ['kage-moonwater.webp', 'O resultado refletido']].map(([image, fallback], index) => {
+            const tool = featured[index]
+            return <button className="kx-card" data-rv="up" onClick={enter} key={image}>
+              <span className="kx-card-frame"><img src={`${kageAsset}generated/${image}`} alt="" width="1536" height="1024" loading="lazy" /><i className="kx-glow" /><span className="kx-card-arrow"><ArrowRight size="16" /></span><span className="kx-card-label"><b>{tool?.name || (loading ? 'Sincronizando' : fallback)}</b><em>{tool?.category || 'UNIFY'}</em></span></span>
+              <span className="kx-card-meta"><span>{tool ? 'Dado real do catálogo' : 'Workspace Unify'}</span><span>0{index + 1} / 03</span></span>
+            </button>
+          })}
         </div>
       </section>
 
-      <section className="kage-section kage-method" id="metodo">
-        <div className="kage-section-index"><span>03</span><p>O método</p></div>
-        <div className="kage-method-title"><p className="kage-kicker"><span /> Clareza em movimento</p><h2>Do primeiro sinal<br />ao resultado final.</h2></div>
-        <ol className="kage-method-list">
+      <section className="kx-story kx-camera-section" id="metodo">
+        <KageForeground scene="method" />
+        <div className="kx-sec-head" data-rv="fade"><span><b>03</b> — Método visual</span><i /><span>FLUXO</span></div>
+        <div className="kx-method-head"><h2 className="kx-display kx-h-section" data-rv="up">Quatro movimentos. Um contexto preservado.</h2><p data-rv="up">Cada etapa é parte do mesmo percurso. Você começa com um quadro limpo e escolhe apenas os blocos necessários.</p></div>
+        <div className="kx-lessons">
           {[
-            ['01', 'Escolha', 'Encontre modelos organizados por função e provedor.'],
-            ['02', 'Conecte', 'Monte o fluxo visual com prompts, referências e saídas.'],
-            ['03', 'Gere', 'Execute a ferramenta e acompanhe o resultado no próprio quadro.'],
-          ].map(([number, title, text]) => <li key={number}><span>{number}</span><h3>{title}</h3><p>{text}</p><ArrowRight size="19" /></li>)}
-        </ol>
+            ['01', 'Escolha a inteligência', 'Modelos organizados por imagem, vídeo, áudio e texto.', 'CATÁLOGO'],
+            ['02', 'Adicione o contexto', 'Prompts e referências entram como blocos independentes.', 'ENTRADA'],
+            ['03', 'Conecte o percurso', 'Portas por cor deixam claro o que pode ser ligado.', 'QUADRO'],
+            ['04', 'Gere e preserve', 'O resultado retorna ao card e permanece no histórico.', 'SAÍDA'],
+          ].map(([number, title, text, meta]) => <div className="kx-lesson" data-rv="up" key={number}><span>{number}</span><h3>{title}<em>{meta}</em></h3><p>{text}</p><b>{number} / 04</b><i /></div>)}
+        </div>
       </section>
 
-      <section className="kage-section kage-final" id="acesso">
-        <div className="kage-section-index"><span>04</span><p>O acesso</p></div>
-        <p className="kage-kicker"><span /> Depois do silêncio</p>
-        <h2>O próximo fluxo<br />começa aqui.</h2>
-        <p>Entre no ambiente onde modelos, referências e resultados permanecem conectados.</p>
-        <button className="kage-primary" onClick={enter}>{session ? 'Abrir meu workspace' : 'Acessar a plataforma'} <ArrowRight size="18" /></button>
+      <section className="kx-story kx-camera-section kx-final" id="acesso">
+        <KageForeground scene="access" />
+        <div className="kx-eyebrow" data-rv="fade"><span /> Capítulo 04 — Depois do silêncio</div>
+        <h2 className="kx-display" data-rv="up">Seu próximo fluxo<br />começa aqui.</h2>
+        <p data-rv="up">Entre no ambiente onde ferramentas, referências e resultados continuam parte da mesma história.</p>
+        <button className="kx-cta" onClick={enter}><i /><span>{session ? 'Abrir meu workspace' : 'Acessar a plataforma'}</span><ArrowRight size="17" /></button>
       </section>
     </main>
 
-    <footer className="kage-footer"><Logo /><p>© 2026 Unify Technologies</p><div><a href="https://skiper-ui.com/" target="_blank" rel="noreferrer">Skiper UI</a><a href="https://app.iconsax.io/" target="_blank" rel="noreferrer">Iconsax</a></div></footer>
+    <footer className="kx-footer">
+      <div className="kx-footer-grid"><div className="kx-footer-brand"><KageBrand /><p>Uma plataforma de ferramentas inteligentes para criar sem fragmentar o processo.</p></div><div><h4>Explorar</h4><a href="#portal">Plataforma</a><a href="#catalogo">Ferramentas</a><a href="#metodo">Método</a></div><div><h4>Produto</h4><button onClick={enter}>Workspace</button><a href="https://docs.unifically.com/introduction" target="_blank" rel="noreferrer">API Unifically</a></div><div><h4>Sistema</h4><a href="https://skiper-ui.com/" target="_blank" rel="noreferrer">Skiper UI</a><a href="https://app.iconsax.io/" target="_blank" rel="noreferrer">Iconsax</a></div></div>
+      <div className="kx-footer-base"><span>© 2026 Unify Technologies</span><span>CLAREZA É UMA FORMA DE VELOCIDADE</span><span>THREE.JS · ONEST · UNIFY</span></div>
+    </footer>
+
+    <div className="kx-rail" aria-label="Progresso da página">{['inicio', 'portal', 'catalogo', 'metodo', 'acesso'].map((id, index) => <a className={active === index ? 'on' : ''} href={`#${id}`} aria-label={`Ir para a seção ${index + 1}`} key={id}><i /></a>)}</div>
   </div>
 }
 

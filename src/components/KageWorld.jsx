@@ -29,6 +29,24 @@ export function KageWorld() {
     scene.fog = new THREE.FogExp2(ink, 0.048)
     const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 80)
     camera.position.set(-1.4, 1.5, 11)
+    const cameraPath = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-1.4, 1.5, 11),
+      new THREE.Vector3(-3.2, 1.15, 9.4),
+      new THREE.Vector3(1.2, 2.3, 7.8),
+      new THREE.Vector3(3.4, 1.6, 6.4),
+      new THREE.Vector3(0, 3.8, 5),
+      new THREE.Vector3(0, 5.2, 3.8),
+    ], false, 'catmullrom', 0.42)
+    const targetPath = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(0.55, 0.35, -0.8),
+      new THREE.Vector3(1.2, 0.8, -0.6),
+      new THREE.Vector3(0.5, 1, -1.2),
+      new THREE.Vector3(0, 1, -1.6),
+      new THREE.Vector3(0, 0.8, -2),
+      new THREE.Vector3(0, -0.5, -1.5),
+    ], false, 'catmullrom', 0.42)
+    const pathPosition = new THREE.Vector3()
+    const pathTarget = new THREE.Vector3()
 
     scene.add(new THREE.HemisphereLight(bone, ink, 1.05))
     const keyLight = new THREE.DirectionalLight(vermilion, 5.2)
@@ -111,8 +129,8 @@ export function KageWorld() {
     let visible = true
 
     const resize = () => {
-      const width = Math.max(window.innerWidth, 1)
-      const height = Math.max(window.innerHeight, 1)
+      const width = Math.max(canvas.clientWidth, 1)
+      const height = Math.max(canvas.clientHeight, 1)
       renderer.setSize(width, height, false)
       camera.aspect = width / height
       camera.updateProjectionMatrix()
@@ -129,10 +147,15 @@ export function KageWorld() {
       if (!visible) return
       scrollProgress += (targetScroll - scrollProgress) * (reducedMotion ? 1 : 0.045)
       const drift = reducedMotion ? 0 : Math.sin(time * 0.00016) * 0.08
-      camera.position.x = -1.4 + scrollProgress * 3.25 + pointer.x * 0.42
-      camera.position.y = 1.5 + Math.sin(scrollProgress * Math.PI * 2) * 0.56 - pointer.y * 0.24
-      camera.position.z = 11 - scrollProgress * 3.8
-      camera.lookAt(0.55 + scrollProgress * 0.9, 0.35 + drift, -0.8)
+      cameraPath.getPoint(scrollProgress, pathPosition)
+      targetPath.getPoint(scrollProgress, pathTarget)
+      const tallFrameFix = Math.max(0, Math.min(1, (1.2 - camera.aspect) / 0.7))
+      camera.position.copy(pathPosition)
+      camera.position.x += pointer.x * 0.42
+      camera.position.y += -pointer.y * 0.24
+      camera.position.z += tallFrameFix * 2.4
+      pathTarget.y += drift
+      camera.lookAt(pathTarget)
       moon.position.y = 3.15 - scrollProgress * 1.3
       particles.rotation.y = time * 0.000018
       world.rotation.y = -0.08 + scrollProgress * 0.19
