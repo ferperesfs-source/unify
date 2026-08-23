@@ -169,7 +169,7 @@ $copy = [ordered]@{
   'You do, from the moment the final invoice clears — source files, fonts we licensed on your behalf, 3D scenes and repository. We ask only to show the work in our portfolio, and we will sit on that until you have announced.' = 'Sim. Projetos, gerações e referências ficam associados ao usuário autenticado e persistidos no Supabase.'
   'When could we start?' = 'Preciso começar com um template?'
   'Sprints usually open up within three weeks. Full builds are booking from January 2027. If your date is fixed and close, say so — occasionally a slot moves and we would rather know who is waiting.' = 'Não. O quadro abre limpo. Você adiciona somente os blocos necessários ou escolhe o Marketing Studio para um fluxo guiado.'
-  'Next' = 'Próximo'
+  '>Next<' = '>Próximo<'
   "Let’s build it!" = 'Construa o fluxo.'
   "Tell me the budget. I’ll be honest." = 'Comece com uma ideia. A Unify conecta o restante.'
   'Start a project' = 'Abrir workspace'
@@ -207,15 +207,246 @@ $exactScript = @'
 <script>
 (() => {
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const observer = new IntersectionObserver(entries => entries.forEach(({target,isIntersecting}) => {
+  const clamp = (value, min = 0, max = 1) => Math.min(max, Math.max(min, value));
+  const progress = section => {
+    if (!section) return 0;
+    const rect = section.getBoundingClientRect();
+    return clamp(-rect.top / Math.max(1, rect.height - innerHeight));
+  };
+  const nearViewport = section => {
+    if (!section) return false;
+    const rect = section.getBoundingClientRect();
+    return rect.bottom > -innerHeight * .45 && rect.top < innerHeight * 1.45;
+  };
+  const mediaObserver = new IntersectionObserver(entries => entries.forEach(({target,isIntersecting}) => {
     if (isIntersecting && !reduced) target.play().catch(() => {}); else target.pause();
   }), {rootMargin:'120px',threshold:.08});
-  [...document.querySelectorAll('.tile video,.pcard video')].forEach(video => observer.observe(video));
-  document.querySelectorAll('a.btn, #heroDock').forEach(link => {
-    if (link.getAttribute('href') === '#cta') return;
+  [...document.querySelectorAll('.tile video,.pcard video')].forEach(video => mediaObserver.observe(video));
+
+  const hero = document.querySelector('#hero');
+  const heroStage = document.querySelector('#heroStage');
+  const collage = document.querySelector('#collage');
+  const tiles = [...document.querySelectorAll('.tile')];
+  const services = document.querySelector('#services');
+  const cylinder = document.querySelector('#cyl');
+  const cylinderRows = [...document.querySelectorAll('.cyl-row')];
+  const works = document.querySelector('#works');
+  const cards = [...document.querySelectorAll('.pcard')];
+  const worksIndex = document.querySelector('#wIdx');
+  const worksProgress = document.querySelector('#wProg');
+  const worksName = document.querySelector('#wName');
+  const glword = document.querySelector('#glword');
+  const glcanvas = document.querySelector('#glcanvas');
+  const processSection = document.querySelector('#process');
+  const horizontalTrack = document.querySelector('#hzTrack');
+  const horizontalProgress = document.querySelector('#hzProg');
+  const phases = [...document.querySelectorAll('.phase')];
+  const arc = document.querySelector('#arc');
+  const teamCards = [...document.querySelectorAll('.tcard')];
+  const quoteStage = document.querySelector('#cw');
+  const quoteCards = [...document.querySelectorAll('.qcard')];
+  const quoteDots = [...document.querySelectorAll('#cwDots i')];
+  const header = document.querySelector('#hdr');
+  const navLinks = [...document.querySelectorAll('.navchain a')];
+  const ghosts = document.querySelector('.ghosts');
+  const pointer = {x:0,y:0,tx:0,ty:0};
+  let horizontalOverflow = 0;
+  let cylinderRadius = 240;
+  let lastScroll = scrollY;
+  let teamTurn = 0;
+  let quoteTurn = 0;
+  let dragging = null;
+
+  tiles.forEach((tile,index) => {
+    tile.dataset.baseTransform = tile.style.transform || '';
+    tile.dataset.floatIndex = index;
   });
+
+  const measure = () => {
+    cylinderRadius = clamp(innerWidth * .18, 125, 292);
+    if (processSection && horizontalTrack) {
+      horizontalOverflow = Math.max(0, horizontalTrack.scrollWidth - innerWidth + innerWidth * .08);
+      processSection.style.height = `${innerHeight + horizontalOverflow + innerHeight * .35}px`;
+    }
+  };
+
+  const renderCylinder = amount => cylinderRows.forEach(row => {
+    const base = Number(row.dataset.angle || 0);
+    const angle = base - amount * 310;
+    const facing = Math.abs(((angle + 180) % 360 + 360) % 360 - 180);
+    const opacity = clamp(1 - (facing - 34) / 62);
+    const scale = .76 + clamp(1 - facing / 100) * .24;
+    row.style.transform = `translate(-50%,-50%) rotateX(${angle}deg) translateZ(${cylinderRadius}px)`;
+    row.style.opacity = opacity;
+    const title = row.querySelector('h3');
+    if (title) title.style.transform = `scale(${scale})`;
+    row.classList.toggle('mid', facing < 7);
+  });
+
+  const renderStack = amount => {
+    const step = amount * Math.max(1, cards.length - 1);
+    const current = Math.min(cards.length - 1, Math.floor(step + .25));
+    cards.forEach((card,index) => {
+      const delta = index - step;
+      if (delta < 0) {
+        const gone = Math.min(1.5, -delta);
+        card.style.transform = `translate3d(${-gone * 18}px,${-gone * innerHeight * .78}px,0) rotate(${gone * 4.5}deg) scale(${1-gone*.035})`;
+        card.style.opacity = clamp(1 - gone * .8);
+        card.style.pointerEvents = 'none';
+      } else {
+        const depth = Math.min(5, delta);
+        card.style.transform = `translate3d(${depth * 56}px,${depth * 37}px,0) rotate(${-depth * 4.2}deg) scale(${1-depth*.062})`;
+        card.style.opacity = clamp(1 - depth * .13, .35, 1);
+        card.style.pointerEvents = depth < .55 ? 'auto' : 'none';
+      }
+      card.style.zIndex = String(100 - index * 10);
+      card.classList.toggle('front', index === current);
+    });
+    const active = cards[current];
+    if (worksIndex) worksIndex.textContent = String(current + 1).padStart(2,'0');
+    if (worksProgress) worksProgress.style.width = `${((current + 1) / cards.length) * 100}%`;
+    if (worksName && active) worksName.textContent = `${active.dataset.title || ''} — ${active.dataset.cat || ''}`;
+  };
+
+  const renderTeam = () => {
+    const count = teamCards.length;
+    const spread = Math.min(innerWidth * .42, 620);
+    teamCards.forEach((card,index) => {
+      const angle = ((index + teamTurn) / count) * Math.PI * 2;
+      const x = Math.sin(angle) * spread;
+      const z = Math.cos(angle);
+      const y = (1 - z) * 72;
+      const scale = .58 + (z + 1) * .21;
+      card.style.transform = `translate(-50%,-50%) translate3d(${x}px,${y}px,${z * 180}px) scale(${scale})`;
+      card.style.opacity = clamp((z + 1.15) / 1.35);
+      card.style.filter = `brightness(${.62 + (z + 1) * .19})`;
+      card.style.zIndex = String(Math.round((z + 1) * 50));
+      card.style.pointerEvents = z > .45 ? 'auto' : 'none';
+    });
+  };
+
+  const renderQuotes = () => {
+    const count = quoteCards.length;
+    quoteCards.forEach((card,index) => {
+      let delta = ((index - quoteTurn) % count + count) % count;
+      if (delta > count / 2) delta -= count;
+      const abs = Math.abs(delta);
+      card.style.transform = `translate(-50%,-50%) translate3d(${delta * Math.min(innerWidth*.32,350)}px,0,${-abs * 135}px) rotateY(${-delta * 36}deg) scale(${1-abs*.145})`;
+      card.style.opacity = clamp(1 - Math.max(0,abs-1) * .75);
+      card.style.filter = `brightness(${1-abs*.15})`;
+      card.style.zIndex = String(100 - abs * 35);
+      card.style.pointerEvents = abs < .45 ? 'auto' : 'none';
+    });
+    quoteDots.forEach((dot,index) => dot.classList.toggle('on', index === ((quoteTurn % count) + count) % count));
+  };
+
+  const update = time => {
+    const y = scrollY;
+    pointer.x += (pointer.tx - pointer.x) * .075;
+    pointer.y += (pointer.ty - pointer.y) * .075;
+    const heroAmount = progress(hero);
+    if (heroStage && nearViewport(hero)) {
+      heroStage.style.transform = `translate3d(0,${-heroAmount * 34}px,0) scale(${1-heroAmount*.035})`;
+      heroStage.style.filter = `blur(${heroAmount * 4}px)`;
+      heroStage.style.opacity = String(1-heroAmount*.58);
+    }
+    if (collage && !reduced && nearViewport(hero)) collage.style.transform = `translate3d(${pointer.x*18}px,${pointer.y*13-heroAmount*26}px,0) scale(1.015)`;
+    if (!reduced && nearViewport(hero)) tiles.forEach((tile,index) => {
+      const drift = Math.sin(time*.00055 + index*.72) * (3 + index%3);
+      tile.style.transform = `${tile.dataset.baseTransform} translate3d(0,${drift}px,0)`;
+    });
+    if (nearViewport(services)) renderCylinder(progress(services));
+    if (nearViewport(works)) renderStack(progress(works));
+    if (glcanvas && glword && nearViewport(glword)) {
+      const gl = progress(glword);
+      glcanvas.style.transform = `scale(${1.04 + Math.sin(gl*Math.PI)*.08}) rotate(${(gl-.5)*1.8}deg)`;
+      glcanvas.style.filter = `hue-rotate(${gl*18}deg) contrast(${1.05+gl*.12})`;
+    }
+    if (horizontalTrack && processSection && nearViewport(processSection)) {
+      const hz = progress(processSection);
+      horizontalTrack.style.transform = `translate3d(${-hz * horizontalOverflow}px,0,0)`;
+      if (horizontalProgress) horizontalProgress.style.width = `${hz*100}%`;
+      phases.forEach(phase => {
+        const rect = phase.getBoundingClientRect();
+        const center = rect.left + rect.width/2;
+        const active = Math.abs(center-innerWidth/2) < rect.width*.7;
+        phase.style.transform = `translateY(${active ? -10 : 0}px)`;
+        phase.style.borderColor = active ? 'var(--signal)' : '';
+      });
+    }
+    if (ghosts && !reduced) ghosts.style.transform = `translate3d(0,${progress(document.querySelector('#cta')) * -90}px,0) rotate(-8deg)`;
+    if (header) {
+      header.classList.toggle('scrolled', y > 20);
+      header.style.transform = y > lastScroll && y > innerHeight*.5 ? 'translateY(-105%)' : 'translateY(0)';
+      header.style.transition = 'transform .45s var(--e-out),background .3s';
+    }
+    const spySections = [hero,services,works,processSection,document.querySelector('#team'),document.querySelector('#cta')];
+    const current = spySections.filter(Boolean).find(section => {const r=section.getBoundingClientRect();return r.top<=innerHeight*.52&&r.bottom>=innerHeight*.52});
+    navLinks.forEach(link => link.classList.toggle('on', current && link.getAttribute('href') === `#${current.id}`));
+    lastScroll = y;
+    requestAnimationFrame(update);
+  };
+
+  addEventListener('pointermove', event => {
+    pointer.tx = (event.clientX / innerWidth - .5) * 2;
+    pointer.ty = (event.clientY / innerHeight - .5) * 2;
+  }, {passive:true});
+  addEventListener('resize', measure, {passive:true});
+
+  if (arc) {
+    arc.tabIndex = 0;
+    arc.style.touchAction = 'pan-y';
+    arc.addEventListener('pointerdown', event => { dragging = {kind:'team',x:event.clientX,start:teamTurn}; arc.setPointerCapture(event.pointerId); });
+    arc.addEventListener('pointermove', event => { if (dragging?.kind === 'team') { teamTurn = dragging.start + (event.clientX-dragging.x)/150; renderTeam(); } });
+    arc.addEventListener('pointerup', () => dragging = null);
+    arc.addEventListener('keydown', event => { if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); teamTurn += event.key === 'ArrowLeft' ? -.45 : .45; renderTeam(); } });
+  }
+
+  document.querySelector('#cwPrev')?.addEventListener('click', () => { quoteTurn--; renderQuotes(); });
+  document.querySelector('#cwNext')?.addEventListener('click', () => { quoteTurn++; renderQuotes(); });
+  if (quoteStage) {
+    quoteStage.tabIndex = 0;
+    quoteStage.addEventListener('keydown', event => { if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); quoteTurn += event.key === 'ArrowLeft' ? -1 : 1; renderQuotes(); } });
+  }
+
+  document.querySelectorAll('.faq').forEach(item => {
+    const button = item.querySelector('button');
+    const body = item.querySelector('.body');
+    button?.addEventListener('click', () => {
+      const open = button.getAttribute('aria-expanded') === 'true';
+      document.querySelectorAll('.faq button[aria-expanded="true"]').forEach(other => {
+        if (other === button) return;
+        other.setAttribute('aria-expanded','false');
+        const otherBody = other.closest('.faq')?.querySelector('.body');
+        if (otherBody) otherBody.style.height = '0px';
+      });
+      button.setAttribute('aria-expanded', String(!open));
+      if (body) body.style.height = open ? '0px' : `${body.scrollHeight}px`;
+      const plus = button.querySelector('.pm i:last-child');
+      if (plus) plus.style.transform = open ? 'rotate(90deg)' : 'rotate(0deg)';
+    });
+  });
+
+  const burger = document.querySelector('#burger');
+  const drawer = document.querySelector('#drawer');
+  const setMenu = open => {
+    burger?.setAttribute('aria-expanded',String(open));
+    drawer?.setAttribute('aria-hidden',String(!open));
+    if (drawer) { drawer.style.clipPath = open ? 'inset(0 0 0 0)' : 'inset(0 0 100% 0)'; drawer.style.pointerEvents = open ? 'auto' : 'none'; }
+    drawer?.querySelectorAll('a').forEach((link,index) => { link.style.opacity = open ? '1' : '0'; link.style.transform = open ? 'translateY(0)' : 'translateY(28px)'; link.style.transitionDelay = open ? `${index*60+180}ms` : '0ms'; });
+  };
+  burger?.addEventListener('click', () => setMenu(burger.getAttribute('aria-expanded') !== 'true'));
+  drawer?.querySelectorAll('a').forEach(link => link.addEventListener('click', () => setMenu(false)));
+
   const ctaLinks = document.querySelectorAll('#cta a.btn, #pricing a.btn');
   ctaLinks.forEach(link => { link.href = '/#login'; link.target = '_top'; });
+  measure();
+  renderTeam();
+  renderQuotes();
+  renderCylinder(0);
+  renderStack(0);
+  window.__voltaMotionReady = true;
+  requestAnimationFrame(update);
 })();
 </script>
 '@
