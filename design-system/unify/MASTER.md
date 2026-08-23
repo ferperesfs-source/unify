@@ -9,7 +9,7 @@
 **Project:** Unify
 **Generated:** 2026-08-22 20:26:44
 **Category:** Generative Art Platform
-**Design Dials:** Variance 6/10 (Balanced / Modern) | Motion 5/10 (Standard) | Density 6/10 (Standard)
+**Design Dials:** Variance 8/10 (Cinematic / Editorial) | Motion 7/10 (Scroll-led) | Density 5/10 (Breathing room)
 
 ---
 
@@ -19,36 +19,36 @@
 
 | Role | Hex | CSS Variable |
 |------|-----|--------------|
-| Primary | `#D8FF66` | `--color-primary` |
-| On Primary | `#181A14` | `--color-on-primary` |
-| Secondary | `#3F3F46` | `--color-secondary` |
-| On Secondary | `#F3F2ED` | `--color-on-secondary` |
-| Accent/CTA | `#D8FF66` | `--color-accent` |
-| On Accent/CTA | `#181A14` | `--color-on-accent` |
-| Background | `#111116` | `--color-background` |
-| Foreground | `#F3F2ED` | `--color-foreground` |
-| Card | `#19191E` | `--color-card` |
-| Card Foreground | `#F3F2ED` | `--color-card-foreground` |
-| Muted | `#25252C` | `--color-muted` |
-| Muted Foreground | `#929198` | `--color-muted-foreground` |
-| Border | `#34343C` | `--color-border` |
-| Destructive | `#E3998F` | `--color-destructive` |
-| On Destructive | `#181116` | `--color-on-destructive` |
-| Ring | `#D8FF66` | `--color-ring` |
+| Primary | `#E0231C` | `--color-primary` |
+| On Primary | `#FFFFFF` | `--color-on-primary` |
+| Secondary | `#172025` | `--color-secondary` |
+| On Secondary | `#DFE7E0` | `--color-on-secondary` |
+| Accent/CTA | `#E0231C` | `--color-accent` |
+| On Accent/CTA | `#FFFFFF` | `--color-on-accent` |
+| Background | `#05070A` | `--color-background` |
+| Foreground | `#DFE7E0` | `--color-foreground` |
+| Card | `#0A0E12` | `--color-card` |
+| Card Foreground | `#DFE7E0` | `--color-card-foreground` |
+| Muted | `#10161B` | `--color-muted` |
+| Muted Foreground | `#78837C` | `--color-muted-foreground` |
+| Border | `#2A3230` | `--color-border` |
+| Destructive | `#FF5A3C` | `--color-destructive` |
+| On Destructive | `#FFFFFF` | `--color-on-destructive` |
+| Ring | `#FF5A3C` | `--color-ring` |
 
-**Color Notes:** Dark neutral canvas inspired by ElevenLabs, with lime as the only brand accent.
+**Color Notes:** Kage-inspired ink canvas. Bone is the reading color, vermilion drives action, ember communicates urgency, and gold is reserved for references or premium context.
 
 ### Typography
 
-- **Heading Font:** Manrope
-- **Body Font:** Manrope
+- **Heading Font:** Onest
+- **Body Font:** Onest
 - **Mood:** dark, cinematic, technical, precision, clean, premium, developer, professional, high-end utility
 - **Technical Font:** DM Mono
-- **Google Fonts:** [Manrope + DM Mono](https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Manrope:wght@400;500;600;700;800&display=swap)
+- **Google Fonts:** [Onest + DM Mono](https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Onest:wght@300;400;500;600;700&display=swap)
 
 **CSS Import:**
 ```css
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Onest:wght@300;400;500;600;700&display=swap');
 ```
 
 ### Spacing Variables
@@ -83,8 +83,8 @@
 ```css
 /* Primary Button */
 .btn-primary {
-  background: #D8FF66;
-  color: #181A14;
+  background: #E0231C;
+  color: #FFFFFF;
   padding: 12px 24px;
   border-radius: 8px;
   font-weight: 600;
@@ -100,8 +100,8 @@
 /* Secondary Button */
 .btn-secondary {
   background: transparent;
-  color: #F3F2ED;
-  border: 1px solid #4A4A53;
+  color: #DFE7E0;
+  border: 1px solid #2A3230;
   padding: 12px 24px;
   border-radius: 8px;
   font-weight: 600;
@@ -114,8 +114,8 @@
 
 ```css
 .card {
-  background: #19191E;
-  border: 1px solid #34343C;
+  background: #0A0E12;
+  border: 1px solid #2A3230;
   border-radius: 12px;
   padding: 24px;
   box-shadow: var(--shadow-md);
@@ -134,18 +134,18 @@
 ```css
 .input {
   padding: 12px 16px;
-  color: #F3F2ED;
+  color: #DFE7E0;
   background: #1D1D23;
-  border: 1px solid #34343C;
+  border: 1px solid #2A3230;
   border-radius: 8px;
   font-size: 16px;
   transition: border-color 200ms ease;
 }
 
 .input:focus {
-  border-color: #D8FF66;
+  border-color: #E0231C;
   outline: none;
-  box-shadow: 0 0 0 3px #D8FF6614;
+  box-shadow: 0 0 0 3px #E0231C1F;
 }
 ```
 
@@ -158,9 +158,9 @@
 }
 
 .modal {
-  color: #F3F2ED;
+  color: #DFE7E0;
   background: #1D1D23;
-  border: 1px solid #34343C;
+  border: 1px solid #2A3230;
   border-radius: 16px;
   padding: 32px;
   box-shadow: var(--shadow-xl);

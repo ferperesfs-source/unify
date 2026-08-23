@@ -1,8 +1,8 @@
-/* Unify design system — UI UX Pro Max baseline adapted to the ElevenLabs-inspired brand. */
+/* Unify design system — UI UX Pro Max baseline adapted from the Kage reference. */
 :root{
-  --ui-bg:#111116;--ui-surface:#17171c;--ui-surface-raised:#1d1d23;--ui-surface-hover:#25252c;
-  --ui-text:#f3f2ed;--ui-text-secondary:#b8b7bd;--ui-text-muted:#929198;--ui-border:#34343c;
-  --ui-border-strong:#4a4a53;--ui-accent:#d8ff66;--ui-accent-ink:#181a14;--ui-danger:#e3998f;
+  --ui-bg:#05070a;--ui-surface:#0a0e12;--ui-surface-raised:#10161b;--ui-surface-hover:#172025;
+  --ui-text:#dfe7e0;--ui-text-secondary:#aab4ad;--ui-text-muted:#78837c;--ui-border:rgba(223,231,224,.13);
+  --ui-border-strong:rgba(223,231,224,.24);--ui-accent:#e0231c;--ui-accent-ink:#fff;--ui-danger:#ff5a3c;--lime:#e0231c;
   --ui-radius-sm:8px;--ui-radius-md:12px;--ui-radius-lg:18px;
   --ui-space-1:4px;--ui-space-2:8px;--ui-space-3:12px;--ui-space-4:16px;--ui-space-6:24px;--ui-space-8:32px;
   --ui-fast:160ms;--ui-normal:240ms;--ui-ease:cubic-bezier(.16,1,.3,1);
