@@ -5,8 +5,6 @@ import './styles.css'
 import './skiper.css'
 import './design-system.css'
 import './kage.css'
-import './volta.css'
-import { VoltaLanding } from './components/VoltaLanding'
 import { TextRoll } from './components/skiper/TextRoll'
 import { ScrollFade } from './components/skiper/ScrollFade'
 import { ProgressiveBlur } from './components/skiper/ProgressiveBlur'
@@ -276,8 +274,7 @@ function KageLanding({ session }) {
 }
 
 function Landing({ session }) {
-  const { tools, loading, error } = useCatalog()
-  return <VoltaLanding session={session} tools={tools} loading={loading} error={error} videos={marketingStudioTemplates} />
+  return <iframe title="Unify — página de apresentação" src="/volta.html" allow="autoplay; fullscreen" style={{ position: 'fixed', inset: 0, width: '100%', height: '100%', border: 0, background: '#141414' }} />
 }
 
 function Login() {
